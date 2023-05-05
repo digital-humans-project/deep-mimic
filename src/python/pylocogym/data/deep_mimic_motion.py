@@ -1,17 +1,15 @@
 import json
-from dataclasses import dataclass
-from typing import Any
+from dataclasses import dataclass, field
+from typing import Dict
 
 import numpy as np
-from numpy.typing import NDArray
-from torch.utils.data import Dataset
 
-from python.pylocogym.data.keyframe_dataset import KeyframeMotionDataSample
+from pylocogym.data.keyframe_dataset import KeyframeMotionDataSample, MapKeyframeMotionDataset
 
 
 @dataclass
 class DeepMimicMotionDataSample(KeyframeMotionDataSample):
-    fields = {
+    fields: Dict = field(default_factory=lambda: {
         'root_pos': (0, 3),
         'root_rot': (3, 7),
         'chest_rot': (7, 11),
@@ -26,11 +24,11 @@ class DeepMimicMotionDataSample(KeyframeMotionDataSample):
         'l_ankle_rot': (43, 47),
         'l_shoulder_rot': (47, 51),
         'l_elbow_rot': (51, 55),
-    }
+    })
 
 
-class DeepMimicMotion(Dataset):
-    def __init__(self, path):
+class DeepMimicMotion(MapKeyframeMotionDataset):
+    def __init__(self, path) -> None:
         super().__init__()
         with open(path, 'r') as f:
             data = json.load(f)
@@ -40,10 +38,10 @@ class DeepMimicMotion(Dataset):
         self.dt = self.frames[:, 0]
         self.t = np.cumsum(self.dt)
 
-    def __len__(self):
-        len(self.t) if self.loop == 'wrap' else 2 * len(self.t) - 1
+    def __len__(self) -> int:
+        return len(self.t) if self.loop == 'none' else 2 * len(self.t) - 1
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx) -> DeepMimicMotionDataSample:
         if self.loop == 'wrap' and idx >= len(self.t):
             idx = -(idx % len(self.t) + 2)
 
