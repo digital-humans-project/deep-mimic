@@ -61,7 +61,7 @@ def play(params, log_path, dir_name, reward_path=None):
         # action = np.zeros(action_shape) # zero point visualization
         while not done:
             eval_env.render("human")
-            obs, reward, done, info = eval_env.step(action)
+            obs, reward, done, info = eval_env.step([action])
             # time.sleep(0.02)
             
     eval_env.close()
