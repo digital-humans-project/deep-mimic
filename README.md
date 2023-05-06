@@ -20,7 +20,7 @@ pip install -e .
 
 ### Base Keyframe Dataset
 
-Base datasets include iterable-style and map-style dataset interfaces. Each dataset allows to iterate over the dataset and returns a `KeyframeMotionDataSample` object, which includes the following fields:
+Base datasets include iterable-style and map-style dataset interfaces. Each dataset allows to iterate over the samples and returns a `KeyframeMotionDataSample` object, which includes the following fields:
 
 ```python
 @dataclass
@@ -32,7 +32,7 @@ class KeyframeMotionDataSample:
 
 ### Deep Mimic Dataset
 
-Deep Mimic dataset is an infinite iterable-style dataset that keeps sampling from a group of motions, as specified in the JSON file in the `datasets` folder. The dataset returns a `DeepMimicMotionDataSample` object, which includes the fields in `KeyframeMotionDataSample` and the following additional fields:
+Deep Mimic dataset is an infinite iterable-style dataset that keeps sampling from a group of motions, as specified in the JSON file in the `datasets` folder. The dataset returns a `DeepMimicKeyframeMotionDataSample` object, which includes the fields in `KeyframeMotionDataSample` and the following additional fields:
 
 ```python
 _fields = {
