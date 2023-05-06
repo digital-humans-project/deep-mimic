@@ -1,5 +1,5 @@
-from dataclasses import dataclass, field
-from typing import Dict
+from dataclasses import dataclass
+from typing import Type
 
 import numpy as np
 from numpy.typing import NDArray
@@ -9,7 +9,11 @@ from numpy.typing import NDArray
 class MotionDataSample:
     t: float
     q: np.ndarray
-    fields: Dict = field(default_factory=dict)
+    fields = {}
+
+    def __getattr__(self, __name: str) -> NDArray:
+        range = self.fields[__name]
+        return self.q[range[0] : range[1]]
 
 
 @dataclass
@@ -17,9 +21,9 @@ class KeyframeMotionDataSample:
     t: float
     q: np.ndarray
     dt: float
-    fields: Dict = field(default_factory=dict)
 
-    BaseSampleType = MotionDataSample
+    fields = {}
+    BaseSampleType: Type[MotionDataSample] = MotionDataSample
 
     def __getattr__(self, __name: str) -> NDArray:
         range = self.fields[__name]
@@ -27,7 +31,7 @@ class KeyframeMotionDataSample:
 
 
 class IterableKeyframeMotionDataset:
-    SampleType = KeyframeMotionDataSample
+    SampleType: Type[KeyframeMotionDataSample] = KeyframeMotionDataSample
 
     def __init__(self) -> None:
         pass

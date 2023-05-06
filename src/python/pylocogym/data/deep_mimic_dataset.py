@@ -4,11 +4,14 @@ from typing import Optional, Union
 
 import numpy as np
 from pylocogym.data.dataset import IterableKeyframeMotionDataset
-from pylocogym.data.deep_mimic_motion import DeepMimicMotion, DeepMimicMotionDataSample
+from pylocogym.data.deep_mimic_motion import (
+    DeepMimicKeyframeMotionDataSample,
+    DeepMimicMotion,
+)
 
 
 class DeepMimicMotionDataset(IterableKeyframeMotionDataset):
-    SampleType = DeepMimicMotionDataSample
+    SampleType = DeepMimicKeyframeMotionDataSample
 
     def __init__(
         self,
@@ -26,9 +29,7 @@ class DeepMimicMotionDataset(IterableKeyframeMotionDataset):
 
         self.weights = np.array([m["Weight"] for m in motions]).astype(np.float32)
         self.weights /= self.weights.sum()
-        self.motions = [
-            self.data_dir / Path(*Path(m["File"]).parts[1:]) for m in motions
-        ]
+        self.motions = [self.data_dir / Path(*Path(m["File"]).parts[1:]) for m in motions]
         self.t = 0.0
 
     def __iter__(self):
