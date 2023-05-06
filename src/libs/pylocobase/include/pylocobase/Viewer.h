@@ -29,16 +29,16 @@ public:
     ~Viewer() override = default;
 
     void drawImGui() override {
-//        ImGui::Begin("Main Menu", NULL, ImGuiWindowFlags_AlwaysAutoResize);
-//        ImGui::Checkbox("Show Main Menu", &showMainMenu);
-//        ImGui::End();
-//
-//        if (showMainMenu) {
-//            crl::gui::ShadowApplication::drawImGui();
-//            ImGui::Begin("Main Menu");
-//            sim_->drawImGui();
-//            ImGui::End();
-//        }
+       ImGui::Begin("Main Menu", NULL, ImGuiWindowFlags_AlwaysAutoResize);
+       ImGui::Checkbox("Show Main Menu", &showMainMenu);
+       ImGui::End();
+
+       if (showMainMenu) {
+           crl::gui::ShadowApplication::drawImGui();
+           ImGui::Begin("Main Menu");
+           sim_->drawImGui();
+           ImGui::End();
+       }
     }
 
     void drawImPlot() override {

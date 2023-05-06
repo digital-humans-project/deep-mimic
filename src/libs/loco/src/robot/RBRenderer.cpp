@@ -47,14 +47,16 @@ void RBRenderer::drawSkeletonView(const std::shared_ptr<const RB> &rb, const gui
     // draw joint limits
     if (showJointLimits) {
         for (uint i = 0; i < rb->cJoints.size(); i++) {
-            drawJointLimits(rb->cJoints[i], shader);
+            if(rb->cJoints[i]->name == "upperneck_z")
+                drawJointLimits(rb->cJoints[i], shader);
         }
     }
 
     // drawing joints happens in world coordinates directly...
     if (showJointAxes) {
         for (uint i = 0; i < rb->cJoints.size(); i++)
-            drawAxis(rb->cJoints[i], shader);
+            if(rb->cJoints[i]->name == "upperneck_z")
+                drawAxis(rb->cJoints[i], shader);
     }
 
     if (showJointAngles) {
@@ -149,7 +151,7 @@ void RBRenderer::drawEndEffectors(const std::shared_ptr<const RB> &rb, const gui
 }
 
 void RBRenderer::drawAxis(const std::shared_ptr<const RBJoint> &j, const gui::Shader &shader) {
-    drawArrow3d(j->getWorldPosition(), V3D(j->parent->getWorldCoordinates(j->rotationAxis) * 0.1), 0.01, shader, V3D(1.0, 0.0, 0.0));
+    drawArrow3d(j->getWorldPosition(), V3D(j->parent->getWorldCoordinates(j->rotationAxis)*0.5), 0.01, shader, V3D(1.0, 0.0, 0.0));
 }
 
 void RBRenderer::drawJointLimits(const std::shared_ptr<const RBJoint> &j, const gui::Shader &shader) {
@@ -177,8 +179,8 @@ void RBRenderer::drawJointLimits(const std::shared_ptr<const RBJoint> &j, const 
     V3D to = j->parent->getWorldCoordinates(getRotationQuaternion(j->maxAngle, j->rotationAxis) * vFeature);
     V3D currentV = j->child->getWorldCoordinates(vFeature);
 
-    drawSector(p, from, to, n, shader, V3D(1, 0, 0));
-    drawArrow3d(p, currentV, 0.01, shader, V3D(0, 1, 0));
+    drawSector(p, (from)*3, (to)*3, (n)*3, shader, V3D(1, 0, 0));
+    drawArrow3d(p, (currentV)*5, 0.01, shader, V3D(0, 1, 0));
 }
 
 void RBRenderer::drawJointAngle(const std::shared_ptr<const RBJoint> &j, const gui::Shader &shader) {

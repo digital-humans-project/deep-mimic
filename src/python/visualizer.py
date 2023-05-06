@@ -30,7 +30,7 @@ def play(params, log_path, dir_name, reward_path=None):
     hyp_params = params['train_hyp_params']
     reward_params = params['reward_params']
 
-    max_episode_steps = hyp_params.get('max_episode_steps', 500)
+    max_episode_steps = hyp_params.get('max_episode_steps', 5000)
     seed = hyp_params.get("seed", 313)
     env_kwargs = {"max_episode_steps": max_episode_steps, "env_params": env_params, "reward_params": reward_params}
 
@@ -57,11 +57,14 @@ def play(params, log_path, dir_name, reward_path=None):
     for ep in range(episodes):
         eval_env.reset()
         done = False
-        action = eval_env.action_space.sample()*0.5  # 0.5 to avoid big angle change
-        # action = np.zeros(action_shape) # zero point visualization
+        # action = eval_env.action_space.sample()*0.5  # 0.5 to avoid big angle change
+        action = np.zeros(action_shape) # zero point visualization
+        # action[0] = 0.5
+        action[35] = 0.8
+        print(action)
         while not done:
             eval_env.render("human")
             obs, reward, done, info = eval_env.step([action])
-            # time.sleep(0.02)
+        time.sleep(0.1)
             
     eval_env.close()
