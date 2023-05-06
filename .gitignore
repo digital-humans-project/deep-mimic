@@ -32,3 +32,5 @@ __pycache__
 notebook/
 .ipynb_checkpoints
 
+# motion clips data
+data/motions/
