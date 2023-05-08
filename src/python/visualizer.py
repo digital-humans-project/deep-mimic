@@ -59,8 +59,7 @@ def play(params, log_path, dir_name, reward_path=None):
         done = False
         # action = eval_env.action_space.sample()*0.5  # 0.5 to avoid big angle change
         action = np.zeros(action_shape) # zero point visualization
-        # action[0] = 0.5
-        action[35] = 0.8
+        action[21] = -0.8
         print(action)
         while not done:
             eval_env.render("human")
