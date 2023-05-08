@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pylocogym"
+version = "0.1.0"
+description = ""
+readme = "README.md"
+license = { text="Apache 2.0"}
+requires-python = ">=3.7.3"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python",
+]
+dependencies = [
+    "stable-baselines3==1.6.0",
+    "scipy",
+    "pylint",
+    "ffmpeg-python",
+    "moviepy",
+    "ffmpeg",
+    "tensorboard",
+    "wandb",
+    "pytest",
+]
+
+[tool.setuptools.packages.find]
+include = ["pylocogym*"]
