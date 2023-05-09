@@ -12,7 +12,7 @@ if __name__ == "__main__":
 
     rewardFile = "./bob/humanoid_reward.py"
     config = "bob_env.json"
-    dataFile = "data/motions/humanoid3d_walk.txt"
+    dataFile = "data/deepmimic/motions/humanoid3d_walk.txt"
 
     # log path
     log_path = PYLOCO_LOG_PATH
