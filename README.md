@@ -6,6 +6,14 @@ cmake --build build
 python3 src/python/main_retarget.py
 ```
 
+## Changing the motion clips to verify
+
+in main_retarget.py:
+
+```python
+dataFile = "data/deepmimic/motions/humanoid3d_walk.txt"
+```
+
 ## Retarget class
 
 ```python
