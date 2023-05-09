@@ -57,6 +57,7 @@ cover/
 
 # Django stuff:
 *.log
+log/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
@@ -80,6 +81,8 @@ target/
 
 # motion clips data
 data/motions/
+data/datasets/
+
 # IPython
 profile_default/
 ipython_config.py
@@ -162,3 +165,37 @@ cython_debug/
 #.idea/
 
 .vscode/
+
+build
+CMakeLists.txt.user
+.DS_Store
+data/out
+wandb/
+
+# imgui
+*.ini
+
+# clion
+.idea/
+cmake-build-*/
+
+# vscode
+.vscode
+.devcontainer
+
+# clang
+clang
+
+# log
+log
+
+# jobs
+jobs/*.err
+jobs/*.out
+
+# python
+__pycache__
+
+# notebook
+notebook/
+.ipynb_checkpoints
