@@ -1,7 +1,9 @@
 # Simple visualizer
 
 ```sh 
-$ python3 src/python/main_visualizer.py
+cmake -DPython_EXECUTABLE=$(which python) -DCMAKE_BUILD_TYPE=Release -B build
+cmake --build build
+python3 src/python/main_visualizer.py
 ```
 
 ## Joint coordinate retarget table
