@@ -21,9 +21,9 @@ class Robot {
 public:
     // options
     bool showMeshes = true;
-    bool showSkeleton = false;
-    bool showJointAxes = false;
-    bool showJointLimits = false;
+    bool showSkeleton = true;
+    bool showJointAxes = true;
+    bool showJointLimits = true;
     bool showJointAngles = false;
     bool showCollisionSpheres = false;
     bool showEndEffectors = false;

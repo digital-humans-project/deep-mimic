@@ -9,7 +9,7 @@
     "vf_coef": 0.5,
     "time_steps": 20e6,
     "save_freq": 1e5,
-    "max_episode_steps": 200,
+    "max_episode_steps": 5000,
     "max_evaluation_steps": 500,
     "seed": 313,
     "normalize_observation": false,
@@ -17,7 +17,7 @@
   },
   "environment_params": {
     "robot_model": "Bob",
-    "control_rate": 60.0,
+    "control_rate": 30.0,
     "simulation_rate": 120.0,
     "motors_kp": 300.0,
     "motors_kd": 50.0,
