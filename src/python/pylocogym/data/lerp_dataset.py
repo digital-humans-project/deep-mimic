@@ -30,6 +30,10 @@ class LerpMotionDataset(ContinuousMotionDataset):
         self.kf_ranges = pairwise(iter(self.kf_dataset))
         self.cur_range = next(self.kf_ranges)
 
+    def reset(self) -> None:
+        self.kf_ranges = pairwise(iter(self.kf_dataset))
+        self.cur_range = next(self.kf_ranges)
+
     def eval(self, t: float) -> Optional[MotionDataSample]:
         assert (
             t >= self.cur_range[0].t
