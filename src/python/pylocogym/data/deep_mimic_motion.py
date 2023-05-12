@@ -1,7 +1,7 @@
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Union
+from typing import Literal, Optional, Union
 
 import numpy as np
 from pylocogym.data.dataset import (
@@ -42,25 +42,34 @@ class DeepMimicKeyframeMotionDataSample(KeyframeMotionDataSample):
 class DeepMimicMotion(MapKeyframeMotionDataset):
     SampleType = DeepMimicKeyframeMotionDataSample
 
-    def __init__(self, path: Union[str, Path], t0: float) -> None:
+    def __init__(self, path: Union[str, Path], t0: float = 0.0, loop: Optional[Literal["wrap", "none"]] = None) -> None:
         super().__init__()
         with open(path, "r") as f:
             data = json.load(f)
-        self.loop = data["Loop"]
+        self.loop = data["Loop"] if loop is None else loop
         assert self.loop in ["wrap", "none"]
         self.frames = np.array(data["Frames"])
         self.dt = self.frames[:, 0]
-        self.t = np.concatenate([[0], np.cumsum(self.dt)]) + t0
+        if self.loop == "wrap":
+            t = np.cumsum(np.concatenate([self.dt, self.dt[-2::-1]]))
+        else:
+            t = np.cumsum(self.dt)
+        self.t = np.concatenate([[0], t]) + t0
+
+    @property
+    def raw_len(self) -> int:
+        return len(self.frames)
 
     def __len__(self) -> int:
-        return len(self.t) if self.loop == "none" else 2 * len(self.t) - 1
+        return self.raw_len if self.loop == "none" else 2 * self.raw_len - 1
 
     def __getitem__(self, idx) -> DeepMimicKeyframeMotionDataSample:
-        if self.loop == "wrap" and idx >= len(self.t):
-            idx = -(idx % len(self.t) + 2)
+        wrap_idx = idx
+        if self.loop == "wrap" and idx >= self.raw_len:
+            wrap_idx = -(idx % self.raw_len + 2)
 
         return DeepMimicKeyframeMotionDataSample(
-            dt=self.dt[idx],
+            dt=self.dt[wrap_idx],
             t=self.t[idx],
-            q=self.frames[idx, 1:],
+            q=self.frames[wrap_idx, 1:],
         )
