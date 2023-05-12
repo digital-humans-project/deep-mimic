@@ -53,6 +53,10 @@ if __name__ == "__main__":
         steps = hyp_params['time_steps']
         dir_name = "{id}-{rew}-{steps:.1f}M".format(id=params['env_id'], rew=rewardFile_formatted, steps=float(steps / 1e6))
 
+
+        motion_clip_file = "humanoid3d_walk.txt"
+        motion_clip_file = os.path.join("data", "deepmimic", "motions", motion_clip_file)
+
         # training
         scripts.train(
             params=params,
@@ -62,5 +66,5 @@ if __name__ == "__main__":
             video_recorder=args.videoRecorder,
             wandb_log=args.wandb,
             config_path=config_path,
-            reward_path=args.rewardFile
+            reward_path=motion_clip_file
         )
