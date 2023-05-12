@@ -55,3 +55,7 @@ class MapKeyframeMotionDataset(IterableKeyframeMotionDataset):
     def __iter__(self):
         for i in range(len(self)):
             yield self[i]
+
+    @property
+    def duration(self) -> float:
+        return self[-1].t + self[-1].dt - self[0].t
