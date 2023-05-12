@@ -64,6 +64,7 @@ def play(params, log_path, dir_name, reward_path=None):
         while not done:
             eval_env.render("human")
             obs, reward, done, info = eval_env.step([action])
+            print("time_stamp:",obs[0,-1])
         time.sleep(0.1)
             
     eval_env.close()
