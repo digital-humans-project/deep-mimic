@@ -7,19 +7,8 @@ from stable_baselines3.common.vec_env import DummyVecEnv
 import numpy as np
 
 
-def manage_save_path(log_dir, name):
-    date = datetime.date.today().strftime("%Y-%m-%d-")
-    name = date + name
-    latest_run_id = utils.get_latest_run_id(log_dir, name)
-    save_path = utils.os.path.join(log_dir, f"{name}_{latest_run_id + 1}")
-    pathlib.Path(save_path).mkdir(parents=True, exist_ok=True)
-    return save_path
-
-
-def play(params, log_path, dir_name, reward_path=None):
+def play(params, reward_path=None):
     """Render environment using given action"""
-
-    save_path = manage_save_path(log_path, dir_name)
 
     # =============
     # unpack params
@@ -30,7 +19,7 @@ def play(params, log_path, dir_name, reward_path=None):
     hyp_params = params['train_hyp_params']
     reward_params = params['reward_params']
 
-    max_episode_steps = hyp_params.get('max_episode_steps', 5000)
+    max_episode_steps = hyp_params.get('max_episode_steps', 30)
     seed = hyp_params.get("seed", 313)
     env_kwargs = {"max_episode_steps": max_episode_steps, "env_params": env_params, "reward_params": reward_params}
 
