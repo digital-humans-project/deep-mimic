@@ -28,12 +28,12 @@
   "reward_params": {
     "fwd_vel_cmd": 0.0,
     "weight_velocity": 1.0e-2,
-    "sigma_velocity": 0.1,
+    "sigma_velocity": 0.5,
 
     "weight_height": 0.3,
     "sigma_height": 0.1,
 
-    "weight_attitude": 0.1,
+    "weight_attitude": 0.3,
     "sigma_attitude": 0.2,
 
     "weight_torque": 1.0e-2,
@@ -45,8 +45,8 @@
     "sigma_smoothness2": 1.0,
     "weight_smoothness": 0.5,
 
-    "weight_joints": 1.0e-2,
-    "sigma_joints": 0.05,
+    "weight_joints": 5.0e-2,
+    "sigma_joints": 0.2,
 
     "weight_early_penalty": 0.0
   },
