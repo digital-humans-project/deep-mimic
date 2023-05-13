@@ -54,7 +54,7 @@ class VanillaEnv(PylocoEnv):
             env_params.get("seed", 1))  # create a local random number generator with seed
         
         self.dataset = DeepMimicMotion(reward_params['reward_file_path'],0, "none")
-        self.max_episode_steps = int(self.dataset.duration / self.cnt_timestep_size) - 1
+        self.max_episode_steps = 2*(int(self.dataset.duration / self.cnt_timestep_size) - 1)
         self.lerp = LerpMotionDataset(self.dataset)
 
     def reset(self, seed=None, return_info=False, options=None):

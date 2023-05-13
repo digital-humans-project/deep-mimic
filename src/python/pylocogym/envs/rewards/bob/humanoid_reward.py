@@ -43,10 +43,9 @@ class Reward:
         observation = ObservationData(observation_raw, num_joints, is_obs_fullstate)
 
         action_dot, action_ddot = calc_derivatives(action_buffer, dt, num_joints)
-        cmd_fwd_vel = params.get("fwd_vel_cmd", 1.0)
         torque = tail(all_torques, num_joints)
 
-        now_t = observation.time_stamp
+        now_t = observation.time_stamp/2.0
         
         # =============
         # define cost/reward terms here:
@@ -56,8 +55,6 @@ class Reward:
         # MOTION CLIPS : X FORWARD, Z RIGHT, Y UP
         # OURS MODEL: Z FORWARD, X LEFT, Y UP
 
-        if dataloader.eval(now_t) is None:
-            print(now_t)
         desired_base_pos_x = dataloader.eval(now_t).q[0]/dataloader.eval(now_t).q[1]
         now_base_z = observation.pos[2]/observation.pos[1]
         diff = np.linalg.norm(desired_base_pos_x - now_base_z)

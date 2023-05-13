@@ -30,68 +30,68 @@ class Retarget:
         scaled_action = (bound_action - self.joint_angle_default) / self.joint_scale_factors 
         return scaled_action
     
-    def retarget_joint_angle(self, motion_clips_q, require_root = False):
+    def retarget_joint_angle(self, motion_clips_q, rescale = False):
         """Given a motion_clips orientation data, return a retarget action"""
         action = np.zeros(self.action_shape)
-        if not require_root:
 
-            (chest_z, chest_y, chest_x) = self.quart_to_rpy(motion_clips_q[7:11], 'zyx')
-            (neck_z,  neck_y,  neck_x) = self.quart_to_rpy(motion_clips_q[11:15],'zyx')
-            (r_hip_z, r_hip_x, r_hip_y) = self.quart_to_rpy(motion_clips_q[15:19],'zxy')
-            (r_ankle_z, r_ankle_x, r_ankle_y) = self.quart_to_rpy(motion_clips_q[20:24],'zxy')
-            (r_shoulder_z, r_shoulder_x, r_shoulder_y) = self.quart_to_rpy(motion_clips_q[24:28],'zxy')
-            (l_hip_z, l_hip_x, l_hip_y) = self.quart_to_rpy(motion_clips_q[29:33],'zxy')
-            (l_ankle_z, l_ankle_x, l_ankle_y) = self.quart_to_rpy(motion_clips_q[34:38],'zxy')
-            (l_shoulder_z, l_shoulder_x, l_shoulder_y) = self.quart_to_rpy(motion_clips_q[38:42],'zxy')
+        (chest_z, chest_y, chest_x) = self.quart_to_rpy(motion_clips_q[7:11], 'zyx')
+        (neck_z,  neck_y,  neck_x) = self.quart_to_rpy(motion_clips_q[11:15],'zyx')
+        (r_hip_z, r_hip_x, r_hip_y) = self.quart_to_rpy(motion_clips_q[15:19],'zxy')
+        (r_ankle_z, r_ankle_x, r_ankle_y) = self.quart_to_rpy(motion_clips_q[20:24],'zxy')
+        (r_shoulder_z, r_shoulder_x, r_shoulder_y) = self.quart_to_rpy(motion_clips_q[24:28],'zxy')
+        (l_hip_z, l_hip_x, l_hip_y) = self.quart_to_rpy(motion_clips_q[29:33],'zxy')
+        (l_ankle_z, l_ankle_x, l_ankle_y) = self.quart_to_rpy(motion_clips_q[34:38],'zxy')
+        (l_shoulder_z, l_shoulder_x, l_shoulder_y) = self.quart_to_rpy(motion_clips_q[38:42],'zxy')
 
-            # chest - xyz euler angle 
-            action[0] = -chest_z
-            action[3] = chest_y
-            action[6] = chest_x
+        # chest - xyz euler angle 
+        action[0] = -chest_z
+        action[3] = chest_y
+        action[6] = chest_x
 
-            # neck - xyz euler angle 
-            action[18] = -neck_z
-            action[23] = neck_y
-            action[26] = neck_x
+        # neck - xyz euler angle 
+        action[18] = -neck_z
+        action[23] = neck_y
+        action[26] = neck_x
 
-            # shoulder - xzy euler angle 
-            action[27] = -l_shoulder_z
-            action[30] = l_shoulder_x
-            action[33] = l_shoulder_y
+        # shoulder - xzy euler angle 
+        action[27] = -l_shoulder_z
+        action[30] = l_shoulder_x
+        action[33] = l_shoulder_y
 
-            action[28] = -r_shoulder_z
-            action[31] = r_shoulder_x
-            action[34] = r_shoulder_y
+        action[28] = -r_shoulder_z
+        action[31] = r_shoulder_x
+        action[34] = r_shoulder_y
 
-            # ankle - xzy euler angle 
-            action[13] = -l_ankle_z
-            action[16] = l_ankle_x
+        # ankle - xzy euler angle 
+        action[13] = -l_ankle_z
+        action[16] = l_ankle_x
 
-            action[14] = -r_ankle_z
-            action[17] = r_ankle_x            
+        action[14] = -r_ankle_z
+        action[17] = r_ankle_x            
 
-            # hip - xzy euler angle 
-            action[1] = -l_hip_z
-            action[4] = l_hip_x
-            action[7] = l_hip_y
+        # hip - xzy euler angle 
+        action[1] = -l_hip_z
+        action[4] = l_hip_x
+        action[7] = l_hip_y
 
-            action[2] = -r_hip_z
-            action[5] = r_hip_x
-            action[8] = r_hip_y
+        action[2] = -r_hip_z
+        action[5] = r_hip_x
+        action[8] = r_hip_y
 
-            r_knee = motion_clips_q[19:20]
-            r_elbow = motion_clips_q[28:29]
-            l_knee = motion_clips_q[33:34]
-            l_elbow = motion_clips_q[42:43]
+        r_knee = motion_clips_q[19:20]
+        r_elbow = motion_clips_q[28:29]
+        l_knee = motion_clips_q[33:34]
+        l_elbow = motion_clips_q[42:43]
 
-            # elbow - revolute joint 
-            action[36] = l_elbow
-            action[37] = r_elbow
+        # elbow - revolute joint 
+        action[36] = l_elbow
+        action[37] = r_elbow
 
-            # knee - revolute joint 
-            action[10] = l_knee
-            action[11] = r_knee
+        # knee - revolute joint 
+        action[10] = l_knee
+        action[11] = r_knee
 
+        if rescale is True:
             action = self.rescale_action(action)
 
         return action
