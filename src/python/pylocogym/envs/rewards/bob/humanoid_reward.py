@@ -19,7 +19,7 @@ class Reward:
         
 
     def compute_reward(self, observation_raw, all_torques, action_buffer, is_obs_fullstate,
-                nominal_base_height, dataloader):
+                nominal_base_height, dataloader, clips_play_speed):
         """
         Compute the reward based on observation (Vanilla Environment).
 
@@ -45,7 +45,9 @@ class Reward:
         action_dot, action_ddot = calc_derivatives(action_buffer, dt, num_joints)
         torque = tail(all_torques, num_joints)
 
-        now_t = observation.time_stamp/2.0
+        # Accelerate or decelerate motion clips, usually deceleration
+        # (clips_play_speed < 1 nomarlly)
+        now_t = observation.time_stamp*clips_play_speed
         
         # =============
         # define cost/reward terms here:

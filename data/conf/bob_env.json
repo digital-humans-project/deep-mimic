@@ -26,6 +26,9 @@
     "use_random_command": false
   },
   "reward_params": {
+
+    "clips_play_speed": 0.5,
+    
     "fwd_vel_cmd": 0.0,
     "weight_velocity": 1.0e-2,
     "sigma_velocity": 0.5,

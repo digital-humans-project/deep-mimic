@@ -54,7 +54,9 @@ class VanillaEnv(PylocoEnv):
             env_params.get("seed", 1))  # create a local random number generator with seed
         
         self.dataset = DeepMimicMotion(reward_params['reward_file_path'],0, "none")
-        self.max_episode_steps = 2*(int(self.dataset.duration / self.cnt_timestep_size) - 1)
+        
+        self.clips_play_speed = reward_params['clips_play_speed']
+        self.max_episode_steps = (int(self.dataset.duration / self.cnt_timestep_size) - 1)/self.clips_play_speed
         self.lerp = LerpMotionDataset(self.dataset)
 
     def reset(self, seed=None, return_info=False, options=None):
@@ -90,7 +92,8 @@ class VanillaEnv(PylocoEnv):
 
         # compute reward
         reward, reward_info = self.reward_utils.compute_reward(observation, self._sim.get_all_motor_torques(), self.action_buffer,
-                                                               self.is_obs_fullstate, self._sim.nominal_base_height, self.lerp)
+                                                               self.is_obs_fullstate, self._sim.nominal_base_height, self.lerp,
+                                                               self.clips_play_speed)
 
         self.sum_episode_reward_terms = {key: self.sum_episode_reward_terms.get(key, 0) + reward_info.get(key, 0) for
                                          key in reward_info.keys()}
