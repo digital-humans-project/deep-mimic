@@ -70,8 +70,9 @@ class Reward:
         weight_height = params.get("weight_height", 0)
         height_reward = weight_height * np.exp(-diff_squere/(2.0*sigma_height**2))
 
-        roll_squere = (observation.roll)**2
-        pitch_squere = (observation.pitch)**2
+        (desired_roll, desired_pitch, _) = self.retarget.retarget_base_orientation(dataloader.eval(now_t).q)
+        roll_squere = (observation.roll - desired_roll)**2
+        pitch_squere = (observation.pitch - desired_pitch)**2
         weight_attitude = params.get("weight_attitude", 0)
         sigma_attitude = params.get("sigma_attitude", 0)
         attitude_reward = weight_attitude * np.exp(-(roll_squere + pitch_squere)/(4.0*sigma_attitude**2))
@@ -96,6 +97,7 @@ class Reward:
         weight_joints = params.get("weight_joints", 0)
         sigma_joints = params.get("sigma_joints", 0)
         joint_reward = weight_joints * np.exp(-np.sum(np.square(diff))/(2.0*N*sigma_joints**2))
+
 
         # =============
         # sum up rewards
