@@ -48,12 +48,12 @@ def play(params, reward_path=None):
         done = False
         # action = eval_env.action_space.sample()*0.5  # 0.5 to avoid big angle change
         action = np.zeros(action_shape) # zero point visualization
-        action[21] = -0.8
+        action[3] = 0.3
         print(action)
         while not done:
             eval_env.render("human")
             obs, reward, done, info = eval_env.step([action])
-            print("time_stamp:",obs[0,-1])
+            print("time_stamp:",obs[0,3:6])
         time.sleep(0.1)
             
     eval_env.close()
