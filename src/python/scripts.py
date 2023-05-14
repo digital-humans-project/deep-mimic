@@ -9,6 +9,7 @@ from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv, VecNormalize, VecVideoRecorder
 from pylocogym.callbacks import RecordEvalCallback, TensorboardCallback, CheckpointSaveCallback
 from pylocogym.algorithms import CustomPPO
+from stable_baselines3 import PPO
 
 
 def manage_save_path(log_dir, name):
@@ -48,7 +49,7 @@ def train(params, log_path, dir_name, debug, video_recorder, wandb_log, reward_p
 
     if wandb_log:
         wandb.init(
-            project="pyloco",
+            project="DH-Project",
             name=save_path.split("/")[-1],
             config=params,
             sync_tensorboard=True,
@@ -157,16 +158,17 @@ def train(params, log_path, dir_name, debug, video_recorder, wandb_log, reward_p
         )]
     )
 
-    model = CustomPPO(
-        'MlpPolicy', env,
-        learning_rate=hyp_params['learning_rate'],
-        batch_size=hyp_params['batch_size'],
-        n_epochs=hyp_params['n_epochs'],
-        n_steps=hyp_params['n_steps'],
-        vf_coef=hyp_params['vf_coef'],
-        policy_kwargs=policy_kwargs,
-        seed=seed
-    )
+    # model = CustomPPO(
+    #     'MlpPolicy', env,
+    #     learning_rate=hyp_params['learning_rate'],
+    #     batch_size=hyp_params['batch_size'],
+    #     n_epochs=hyp_params['n_epochs'],
+    #     n_steps=hyp_params['n_steps'],
+    #     vf_coef=hyp_params['vf_coef'],
+    #     policy_kwargs=policy_kwargs,
+    #     seed=seed
+    # )
+    model = PPO.load("log/2023-05-13-PylocoVanilla-v0-bob_humanoid_reward-20.0M_2/model.zip",env)
 
     logging_format = ["stdout"]
     if not debug:
