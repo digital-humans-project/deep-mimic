@@ -33,20 +33,20 @@
     "weight_velocity": 5.0e-2,
     "sigma_velocity": 0.5,
 
-    "weight_height": 0.2,
+    "weight_height": 0.05,
     "sigma_height": 0.1,
 
-    "weight_attitude": 0.3,
+    "weight_attitude": 0.1,
     "sigma_attitude": 0.2,
 
-    "weight_torque": 1.0e-2,
+    "weight_torque": 5.0e-3,
     "sigma_torque": 5.0,
 
     "weight_smoothness1": 1.0e-2,
     "sigma_smoothness1": 2.0,
     "weight_smoothness2": 1.0e-2,
     "sigma_smoothness2": 1.0,
-    "weight_smoothness": 0.5,
+    "weight_smoothness": 0.3,
 
     "weight_joints": 0.5,
     "sigma_joints": 0.1,

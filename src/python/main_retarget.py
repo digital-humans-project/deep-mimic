@@ -10,7 +10,7 @@ from pylocogym.cmake_variables import *
 
 if __name__ == "__main__":
 
-    rewardFile = "./bob/humanoid_reward.py"
+    motion_clip_file = "humanoid3d_walk.txt"
     config = "bob_env.json"
     dataFile = "data/deepmimic/motions/humanoid3d_walk.txt"
 
@@ -18,9 +18,8 @@ if __name__ == "__main__":
     log_path = PYLOCO_LOG_PATH
     data_path = PYLOCO_DATA_PATH
 
-    rewardFile_formatted = rewardFile.replace(".py", "").replace("./","").replace("/","_")
-    if rewardFile is not None:
-        rewardFile = os.path.join("src", "python", "pylocogym", "envs", "rewards", rewardFile)
+    if motion_clip_file is not None:
+        motion_clip_file = os.path.join("data", "deepmimic", "motions", motion_clip_file)
 
     # config file
     if config is None:
@@ -35,11 +34,11 @@ if __name__ == "__main__":
     # key parameters
     hyp_params = params['train_hyp_params']
     steps = hyp_params['time_steps']
-    dir_name = "{id}-{rew}-{steps:.1f}M".format(id=params['env_id'], rew=rewardFile_formatted, steps=float(steps / 1e6))
+    dir_name = "{id}-{rew}-{steps:.1f}M".format(id=params['env_id'], rew=motion_clip_file, steps=float(steps / 1e6))
 
     # Play environment
     retarget.test(
         params=params,
-        reward_path=rewardFile,
+        reward_path=motion_clip_file,
         data_path=dataFile
     )

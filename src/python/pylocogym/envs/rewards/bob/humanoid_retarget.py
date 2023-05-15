@@ -97,5 +97,7 @@ class Retarget:
 
         if rescale is True:
             action = self.rescale_action(action)
+        else:
+            action = np.minimum(np.maximum(action,self.joint_angle_limit_low),self.joint_angle_limit_high)
 
         return action
