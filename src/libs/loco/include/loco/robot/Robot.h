@@ -22,8 +22,8 @@ public:
     // options
     bool showMeshes = true;
     bool showSkeleton = true;
-    bool showJointAxes = true;
-    bool showJointLimits = true;
+    bool showJointAxes = false;
+    bool showJointLimits = false;
     bool showJointAngles = false;
     bool showCollisionSpheres = false;
     bool showEndEffectors = false;
