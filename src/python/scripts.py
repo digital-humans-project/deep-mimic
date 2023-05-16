@@ -158,20 +158,20 @@ def train(params, log_path, dir_name, debug, video_recorder, wandb_log, reward_p
         )]
     )
 
-    model = CustomPPO(
-        'MlpPolicy', env,
-        learning_rate=hyp_params['learning_rate'],
-        batch_size=hyp_params['batch_size'],
-        n_epochs=hyp_params['n_epochs'],
-        n_steps=hyp_params['n_steps'],
-        vf_coef=hyp_params['vf_coef'],
-        gamma=0.95, 
-        gae_lambda=0.95, 
-        clip_range=0.2,
-        policy_kwargs=policy_kwargs,
-        seed=seed
-    )
-    # model = PPO.load("log/2023-05-13-PylocoVanilla-v0-bob_humanoid_reward-20.0M_2/model.zip",env)
+    # model = CustomPPO(
+    #     'MlpPolicy', env,
+    #     learning_rate=hyp_params['learning_rate'],
+    #     batch_size=hyp_params['batch_size'],
+    #     n_epochs=hyp_params['n_epochs'],
+    #     n_steps=hyp_params['n_steps'],
+    #     vf_coef=hyp_params['vf_coef'],
+    #     gamma=0.95, 
+    #     gae_lambda=0.95, 
+    #     clip_range=0.2,
+    #     policy_kwargs=policy_kwargs,
+    #     seed=seed
+    # )
+    model = PPO.load("log/2023-05-15-PylocoVanilla-v0-bob_humanoid_reward-45.0M_2/model_25600000_steps.zip",env)
 
     logging_format = ["stdout"]
     if not debug:
