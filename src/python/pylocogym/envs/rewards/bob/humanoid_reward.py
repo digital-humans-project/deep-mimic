@@ -90,7 +90,7 @@ class Reward:
         sigma_smoothness2 = params.get("sigma_smoothness2", 0)    
         smoothness2_reward = weight_smoothness2 * np.exp(-np.sum(action_ddot**2)/(2.0*N*sigma_smoothness2**2))
 
-        # Motion imitation reward #
+        # Motion imitation reward 
         joint_angles = observation.joint_angles
         desired_angles = self.retarget.retarget_joint_angle(dataloader.eval(now_t).q)
         diff = joint_angles - desired_angles
@@ -98,12 +98,20 @@ class Reward:
         sigma_joints = params.get("sigma_joints", 0)
         joint_reward = weight_joints * np.exp(-np.sum(np.square(diff))/(2.0*N*sigma_joints**2))
 
+        # Leg reawrd
+        leg_joint_angles = observation.joint_angles[[1,4,7,10,13,16,2,5,8,11,14,17]]
+        desired_leg_angles = self.retarget.retarget_joint_angle(dataloader.eval(now_t).q)[[[1,4,7,10,13,16,2,5,8,11,14,17]]]
+        diff = leg_joint_angles - desired_leg_angles
+        weight_legs = params.get("weight_legs", 0)
+        sigma_legs = params.get("sigma_legs", 0)
+        leg_reward = weight_legs * np.exp(-np.sum(np.square(diff))/(2.0*12*sigma_legs**2))
+
 
         # =============
         # sum up rewards
         # =============
         smoothness_reward = params.get("weight_smoothness", 0) * (smoothness1_reward + smoothness2_reward)
-        reward = forward_vel_reward + smoothness_reward + torque_reward + height_reward + attitude_reward + joint_reward
+        reward = forward_vel_reward + smoothness_reward + torque_reward + height_reward + attitude_reward + joint_reward + leg_reward
 
         info = {
             "forward_vel_reward": forward_vel_reward,
@@ -115,7 +123,9 @@ class Reward:
             "smoothness2_reward": smoothness2_reward,
             "smoothness_reward": smoothness_reward,
 
-            "joint_reward": joint_reward
+            "joint_reward": joint_reward,
+
+            "leg_reward": leg_reward
         }
 
         return reward, info
