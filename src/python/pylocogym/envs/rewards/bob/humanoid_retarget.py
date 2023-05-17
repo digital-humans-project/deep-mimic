@@ -31,8 +31,8 @@ class Retarget:
         return scaled_action
     
     def retarget_base_orientation(self, motion_clips_q):
-        (pitch, yaw, roll)  = self.quart_to_rpy(motion_clips_q[3:7], 'zyx')
-        return roll, -pitch, yaw, 
+        (yaw, pitch, roll)  = self.quart_to_rpy(motion_clips_q[3:7], 'yzx')
+        return yaw, -pitch, roll
 
     def retarget_joint_angle(self, motion_clips_q, rescale = False):
         """Given a motion_clips orientation data, return a retarget action"""

@@ -70,12 +70,13 @@ class Reward:
         weight_height = params.get("weight_height", 0)
         height_reward = weight_height * np.exp(-diff_squere/(2.0*sigma_height**2))
 
-        (desired_roll, desired_pitch, _) = self.retarget.retarget_base_orientation(dataloader.eval(now_t).q)
+        (desired_yaw, desired_pitch, desired_roll) = self.retarget.retarget_base_orientation(dataloader.eval(now_t).q)
         roll_squere = (observation.roll - desired_roll)**2
         pitch_squere = (observation.pitch - desired_pitch)**2
+        yaw_squere = (observation.yaw - desired_yaw)**2
         weight_attitude = params.get("weight_attitude", 0)
         sigma_attitude = params.get("sigma_attitude", 0)
-        attitude_reward = weight_attitude * np.exp(-(roll_squere + pitch_squere)/(4.0*sigma_attitude**2))
+        attitude_reward = weight_attitude * np.exp(-(roll_squere + pitch_squere + yaw_squere)/(6.0*sigma_attitude**2))
 
         N = num_joints
         weight_torque = params.get("weight_torque", 0)

@@ -37,7 +37,7 @@
     "sigma_height": 0.1,
 
     "weight_attitude": 0.1,
-    "sigma_attitude": 0.2,
+    "sigma_attitude": 0.1,
 
     "weight_torque": 5.0e-3,
     "sigma_torque": 5.0,
