@@ -10,7 +10,10 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 
 
- 
+# ? (Konstantinos)
+# Why do we have the "Retarget" class in both this moduel ("retarget.py") and inside the "VanillaEnv.py"?
+# I believe it would make more sense to have it only inside the current module and import it wherever needed.
+
 class Retarget:
     def __init__(self, action_shape, joint_lower_limit, joint_upper_limit, joint_default_angle = None):
 
@@ -23,6 +26,7 @@ class Retarget:
                                                 0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,
                                                 0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,
                                                 0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0 ])
+            # self.joint_angle_default = np.zeros(44) # Suggestion for abbreviating the above array definition. 
         self.joint_scale_factors = np.maximum(abs(self.joint_angle_default - self.joint_angle_limit_low),
                                 abs(self.joint_angle_default - self.joint_angle_limit_high))
         self.action_shape = action_shape
@@ -132,8 +136,9 @@ def test(params, reward_path=None, data_path = None):
     # =============
 
     if data_path is not None:
-        dataset = DeepMimicMotion(data_path, 0)
+        dataset = DeepMimicMotion(data_path) # Do not time shift the dataset
         lerp = LerpMotionDataset(dataset)
+        # ? (Konstantinos) I'm having trouble understanding the flow of data in the pipeline and what each class represents :/
 
     # =============
     # create a single environment for evaluation
@@ -151,6 +156,7 @@ def test(params, reward_path=None, data_path = None):
     # joint config 
     # =============
 
+    # ? (Konstantinos) Where were the specifications of the joints lower and upper limits  provided?
     joint_lower_limit = np.array([-0.5 , -1.2 , -1.2 , -0.5 , -0.5 , -1.2 , -0.5 , -0.75, -0.75,
                                 -0.5 ,  0.  ,  0.  , -0.5 , -0.5 , -0.5 , -0.5 , -0.5 , -0.5 ,
                                 -0.5 , -0.8 , -0.2 , -0.75, -0.75, -0.5 , -0.2 , -0.6 , -0.5 ,
@@ -166,12 +172,15 @@ def test(params, reward_path=None, data_path = None):
     # start playing
     # =============
     episodes = 100
-    frame_rate = 60
+    # Remember the frame rate provided below is independent of the frame rate at which the data was recorded.
+    # That is possible thanks to the linear interpolation done between data frames. (see "lerp_dataset.py -> eval()").
+    # NOTE: IDEALLY, we should have the frame rate be identical to the one provided in the data, so as to avoid unexpected artefacts.
+    frame_rate = 60 
     action_shape = eval_env.action_space.shape[0] 
     retarget=Retarget(action_shape,joint_lower_limit,joint_upper_limit)
 
     for ep in range(episodes):
-        eval_env.reset()
+        eval_env.reset() # Again, this is copied from the 
         done = False
         t = 0
         while not done:
@@ -179,7 +188,7 @@ def test(params, reward_path=None, data_path = None):
             action = retarget.retarget_joint_angle(lerp.eval(t).q)
             obs, reward, done, info = eval_env.step([action])
             t += 1.0/frame_rate
-            time.sleep(0.1)
+            time.sleep(0.1) # ? (Konstantinos) Why is the sleeping required? 
        
             
     eval_env.close()

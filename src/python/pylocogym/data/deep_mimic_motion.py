@@ -42,7 +42,7 @@ class DeepMimicKeyframeMotionDataSample(KeyframeMotionDataSample):
 class DeepMimicMotion(MapKeyframeMotionDataset):
     SampleType = DeepMimicKeyframeMotionDataSample
 
-    def __init__(self, path: Union[str, Path], t0: float) -> None:
+    def __init__(self, path: Union[str, Path], t0: float = 0) -> None:
         super().__init__()
         with open(path, "r") as f:
             data = json.load(f)

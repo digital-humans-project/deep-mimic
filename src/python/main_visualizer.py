@@ -19,6 +19,7 @@ if __name__ == "__main__":
 
     rewardFile_formatted = rewardFile.replace(".py", "").replace("./","").replace("/","_")
     if rewardFile is not None:
+        # Heavily assumes the directory structure of the project. Be careful to include the reward file in the predertermined path below.
         rewardFile = os.path.join("src", "python", "pylocogym", "envs", "rewards", rewardFile)
 
     # config file
@@ -26,7 +27,7 @@ if __name__ == "__main__":
         sys.exit('Config name needs to be specified for training: --config <config file name>')
     else:
         config_path = os.path.join(data_path, 'conf', config)
-        print('- config file path = {}'.format(config_path))
+        print(f'- config file path = {config_path}')
 
     with open(config_path, 'r') as f:
         params = json.load(f)

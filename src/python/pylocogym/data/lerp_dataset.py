@@ -34,12 +34,15 @@ class LerpMotionDataset(ContinuousMotionDataset):
         assert (
             t >= self.cur_range[0].t
         ), f"t = {t} < time of current keyframe {self.cur_range[0].t}, t must be monotonically increasing"
+        # Skip to the time margin of which t is an (inside) part of.
         while t > self.cur_range[1].t:
             try:
                 self.cur_range = next(self.kf_ranges)
             except StopIteration:
                 return None
         dt = self.cur_range[1].t - self.cur_range[0].t
+        # Computing linear interpolation coefficient α
         alpha = (t - self.cur_range[0].t) / dt
+        # Extract intermediate state q, which is the linear interpolation between the start of the current motion and the end of the current motion. 
         q = self.cur_range[0].q * (1 - alpha) + self.cur_range[1].q * alpha
         return self.kf_dataset.SampleType.BaseSampleType(t, q)

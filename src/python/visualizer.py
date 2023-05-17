@@ -41,6 +41,8 @@ def play(params, log_path, dir_name, reward_path=None):
     # create a single environment for evaluation
     # =============
 
+    # Documentation: https://stable-baselines3.readthedocs.io/en/master/guide/vec_envs.html
+    # Useful to have the documentation open for the subsequent calls of the "eval_env" as well.
     eval_env = make_vec_env(
         env_id,
         n_envs=1,
@@ -55,6 +57,15 @@ def play(params, log_path, dir_name, reward_path=None):
     episodes = 100
     action_shape = eval_env.action_space.shape[0] 
     for ep in range(episodes):
+        # "eval_env.reset()"
+        # Reset all the environments and return an array of observations, or a tuple of observation arrays.
+        # If step_async is still doing work, that work will be cancelled and step_wait() should not be called until step_async() is invoked again.
+        # Return type : Union[ndarray, Dict[str, ndarray], Tuple[ndarray, ...]]
+        # Returns: observation
+
+        # ? (Konstantinos)
+        # Resetting the environment does not reset the computed policy as well, right?
+        # Therefore, the "initial condition" of the system (e.g. Bob standing upright) is the same, but the policy has evolved.
         eval_env.reset()
         done = False
         # action = eval_env.action_space.sample()*0.5  # 0.5 to avoid big angle change
