@@ -20,6 +20,7 @@ class MotionDataSample:
 class KeyframeMotionDataSample:
     t: float
     q: np.ndarray
+    qdot: np.ndarray
     dt: float
 
     fields = {}

@@ -44,32 +44,31 @@ class DeepMimicMotion(MapKeyframeMotionDataset):
 
     def __init__(self, path: Union[str, Path], t0: float = 0.0, loop: Optional[Literal["wrap", "none"]] = None) -> None:
         super().__init__()
+
         with open(path, "r") as f:
             data = json.load(f)
-        self.loop = data["Loop"] if loop is None else loop
-        assert self.loop in ["wrap", "none"]
-        self.frames = np.array(data["Frames"])
-        self.dt = self.frames[:, 0]
-        if self.loop == "wrap":
-            t = np.cumsum(np.concatenate([self.dt, self.dt[-2::-1]]))
-        else:
-            t = np.cumsum(self.dt)
-        self.t = np.concatenate([[0], t]) + t0
 
-    @property
-    def raw_len(self) -> int:
-        return len(self.frames)
+        self.loop = data["Loop"] if loop is None else loop
+        assert self.loop in ["wrap", "none", "mirror"]
+
+        frames = np.array(data["Frames"])
+        if self.loop == "mirror":
+            frames = np.concatenate([frames, frames[-2::-1]])
+
+        self.dt = frames[:, 0]
+        t = np.cumsum(self.dt)
+        self.t = np.concatenate([[0], t]) + t0
+        self.q = frames[:, 1:]
+        self.qdot = np.diff(self.q, axis=0) / self.dt[:-1, None]
 
     def __len__(self) -> int:
-        return self.raw_len if self.loop == "none" else 2 * self.raw_len - 1
+        return len(self.q)
 
     def __getitem__(self, idx) -> DeepMimicKeyframeMotionDataSample:
-        wrap_idx = idx
-        if self.loop == "wrap" and idx >= self.raw_len:
-            wrap_idx = -(idx % self.raw_len + 2)
-
+        idx = np.clip(idx, 0, len(self) - 1)
         return DeepMimicKeyframeMotionDataSample(
-            dt=self.dt[wrap_idx],
+            dt=self.dt[idx],
             t=self.t[idx],
-            q=self.frames[wrap_idx, 1:],
+            q=self.q[idx, :],
+            qdot=self.qdot[idx, :],
         )
