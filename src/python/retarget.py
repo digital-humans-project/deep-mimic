@@ -41,8 +41,8 @@ class Retarget:
         return scaled_action
     
     def retarget_base_orientation(self, motion_clips_q):
-        (pitch, yaw, roll)  = self.quart_to_rpy(motion_clips_q[3:7], 'zyx')
-        return roll, -pitch, yaw, 
+        (yaw, pitch, roll)  = self.quart_to_rpy(motion_clips_q[3:7], 'yzx')
+        return yaw, -pitch, roll
 
     def retarget_joint_angle(self, motion_clips_q, require_root = False):
         """Given a motion_clips orientation data, return a retarget action"""
@@ -181,11 +181,12 @@ def test(params, reward_path=None, data_path = None):
         while not done:
             eval_env.render("human")
             action = retarget.retarget_joint_angle(lerp.eval(t).q)
-            (desired_roll, desired_pitch, _) = retarget.retarget_base_orientation(lerp.eval(t).q)
+            (desired_yaw, desired_pitch, desired_roll) = retarget.retarget_base_orientation(lerp.eval(t).q)
             obs, reward, done, info = eval_env.step([action])
-            print(desired_roll, desired_pitch, "==" ,obs[0,5], obs[0,4])
+            print(desired_yaw, desired_pitch, desired_roll, "==" ,obs[0,3], obs[0,4], obs[0,5])
             t += 1.0/frame_rate
             # time.sleep(0.1)
+        lerp.reset()
        
             
     eval_env.close()
