@@ -16,10 +16,28 @@ from pylocogym.data.dataset import IterableKeyframeMotionDataset, MotionDataSamp
 
 
 class ContinuousMotionDataset:
+    """
+    `ContinuousMotionDataset` is the base class for all continuous motion datasets.
+
+    Continuous motion datasets are datasets that can be evaluated at any time `t` and
+    return a `MotionDataSample` that contains the state of the motion at time `t`.
+    """
+
     def __init__(self, kf_dataset: IterableKeyframeMotionDataset) -> None:
         self.kf_dataset = kf_dataset
 
+    def reset(self) -> None:
+        """
+        Reset the dataset to the beginning.
+        """
+        raise NotImplementedError
+
     def eval(self, t: float) -> Optional[MotionDataSample]:
+        """
+        Evaluate the motion at time `t`.
+
+        If `t` is outside the range of the dataset, `None` is returned.
+        """
         raise NotImplementedError
 
 
@@ -28,6 +46,11 @@ def lerp(a, b, alpha):
 
 
 class LerpMotionDataset(ContinuousMotionDataset):
+    """
+    `LerpMotionDataset` is a wrapper around `IterableKeyframeMotionDataset` that
+    interpolates between keyframes using linear interpolation.
+    """
+
     def __init__(self, kf_dataset: IterableKeyframeMotionDataset) -> None:
         super().__init__(kf_dataset)
         self.kf_dataset = kf_dataset
