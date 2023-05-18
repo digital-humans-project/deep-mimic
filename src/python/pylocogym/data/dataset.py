@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Type
+from typing import Iterator, Type
 
 import numpy as np
 from numpy.typing import NDArray
@@ -9,6 +9,8 @@ from numpy.typing import NDArray
 class MotionDataSample:
     t: float
     q: np.ndarray
+    qdot: np.ndarray
+
     fields = {}
 
     def __getattr__(self, __name: str) -> NDArray:
@@ -27,6 +29,9 @@ class KeyframeMotionDataSample:
     BaseSampleType: Type[MotionDataSample] = MotionDataSample
 
     def __getattr__(self, __name: str) -> NDArray:
+        return self[__name]
+
+    def __getitem__(self, __name: str) -> NDArray:
         range = self.fields[__name]
         return self.q[range[0] : range[1]]
 
@@ -37,7 +42,7 @@ class IterableKeyframeMotionDataset:
     def __init__(self) -> None:
         pass
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[SampleType]:
         raise NotImplementedError
 
 
@@ -53,7 +58,7 @@ class MapKeyframeMotionDataset(IterableKeyframeMotionDataset):
     def __getitem__(self, idx: int) -> SampleType:
         raise NotImplementedError
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[SampleType]:
         for i in range(len(self)):
             yield self[i]
 
