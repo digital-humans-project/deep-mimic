@@ -1,8 +1,26 @@
 from dataclasses import dataclass
-from typing import Iterator, Type
+from enum import Enum, auto
+from typing import Any, ClassVar, Dict, Iterator, Tuple, Type, Union
 
 import numpy as np
 from numpy.typing import NDArray
+
+
+class StrEnum(str, Enum):
+    """
+    Enum class for motion data field names.
+    """
+
+    def __new__(cls, value, *args, **kwargs):
+        if not isinstance(value, (str, auto)):
+            raise TypeError(f"Values of StrEnums must be strings: {value!r} is a {type(value)}")
+        return super().__new__(cls, value, *args, **kwargs)
+
+    def __str__(self) -> str:
+        return str(self.value)
+
+    def _generate_next_value_(name, *_):
+        return name.lower()
 
 
 @dataclass
@@ -11,11 +29,25 @@ class MotionDataSample:
     q: np.ndarray
     qdot: np.ndarray
 
-    fields = {}
+    Fields: ClassVar[Type[Enum]] = StrEnum
+    fields: ClassVar[Dict[Fields, Tuple[int, int]]] = {}
 
     def __getattr__(self, __name: str) -> NDArray:
-        range = self.fields[__name]
+        return self[__name]
+
+    def __setattr__(self, __name: str, __value: Any) -> None:
+        if __name in self.fields:
+            self[__name] = __value
+        else:
+            super().__setattr__(__name, __value)
+
+    def __getitem__(self, __name: Union[Fields, str]) -> NDArray:
+        range = self.fields[self.Fields(__name)]
         return self.q[range[0] : range[1]]
+
+    def __setitem__(self, __name: Union[Fields, str], value: NDArray) -> None:
+        range = self.fields[self.Fields(__name)]
+        self.q[range[0] : range[1]] = value
 
 
 @dataclass
@@ -25,15 +57,27 @@ class KeyframeMotionDataSample:
     qdot: np.ndarray
     dt: float
 
-    fields = {}
-    BaseSampleType: Type[MotionDataSample] = MotionDataSample
+    Fields: ClassVar[Type[Enum]] = StrEnum
+    fields: ClassVar[Dict[Fields, Tuple[int, int]]] = {}
+
+    BaseSampleType: ClassVar[Type[MotionDataSample]] = MotionDataSample
 
     def __getattr__(self, __name: str) -> NDArray:
         return self[__name]
 
-    def __getitem__(self, __name: str) -> NDArray:
-        range = self.fields[__name]
+    def __setattr__(self, __name: str, __value: Any) -> None:
+        if __name in self.fields:
+            self[__name] = __value
+        else:
+            super().__setattr__(__name, __value)
+
+    def __getitem__(self, __name: Union[Fields, str]) -> NDArray:
+        range = self.fields[self.Fields(__name)]
         return self.q[range[0] : range[1]]
+
+    def __setitem__(self, __name: Union[Fields, str], value: NDArray) -> None:
+        range = self.fields[self.Fields(__name)]
+        self.q[range[0] : range[1]] = value
 
 
 class IterableKeyframeMotionDataset:
