@@ -1,42 +1,69 @@
 import json
 from dataclasses import dataclass
+from enum import auto
 from pathlib import Path
-from typing import Literal, Optional, Union
+from typing import ClassVar, Dict, Literal, Optional, Tuple, Union
 
 import numpy as np
 from pylocogym.data.dataset import (
+    Fields,
     KeyframeMotionDataSample,
     MapKeyframeMotionDataset,
     MotionDataSample,
+    StrEnum,
 )
 
-_fields = {
-    "root_pos": (0, 3),
-    "root_rot": (3, 7),
-    "chest_rot": (7, 11),
-    "neck_rot": (11, 15),
-    "r_hip_rot": (15, 19),
-    "r_knee_rot": (19, 20),
-    "r_ankle_rot": (20, 24),
-    "r_shoulder_rot": (24, 28),
-    "r_elbow_rot": (28, 29),
-    "l_hip_rot": (29, 33),
-    "l_knee_rot": (33, 34),
-    "l_ankle_rot": (34, 38),
-    "l_shoulder_rot": (38, 42),
-    "l_elbow_rot": (42, 43),
-}
+
+class DeepMimicMotionDataFieldNames(StrEnum):
+    """
+    Enum class for DeepMimic motion data field names.
+    """
+
+    ROOT_POS = auto()
+    ROOT_ROT = auto()
+    CHEST_ROT = auto()
+    NECK_ROT = auto()
+    R_HIP_ROT = auto()
+    R_KNEE_ROT = auto()
+    R_ANKLE_ROT = auto()
+    R_SHOULDER_ROT = auto()
+    R_ELBOW_ROT = auto()
+    L_HIP_ROT = auto()
+    L_KNEE_ROT = auto()
+    L_ANKLE_ROT = auto()
+    L_SHOULDER_ROT = auto()
+    L_ELBOW_ROT = auto()
+
+
+class DeepMimicMotionDataField(Fields):
+    FieldNames = DeepMimicMotionDataFieldNames
+    fields: Dict[DeepMimicMotionDataFieldNames, Tuple[int, int]] = {
+        DeepMimicMotionDataFieldNames.ROOT_POS: (0, 3),
+        DeepMimicMotionDataFieldNames.ROOT_ROT: (3, 7),
+        DeepMimicMotionDataFieldNames.CHEST_ROT: (7, 11),
+        DeepMimicMotionDataFieldNames.NECK_ROT: (11, 15),
+        DeepMimicMotionDataFieldNames.R_HIP_ROT: (15, 19),
+        DeepMimicMotionDataFieldNames.R_KNEE_ROT: (19, 20),
+        DeepMimicMotionDataFieldNames.R_ANKLE_ROT: (20, 24),
+        DeepMimicMotionDataFieldNames.R_SHOULDER_ROT: (24, 28),
+        DeepMimicMotionDataFieldNames.R_ELBOW_ROT: (28, 29),
+        DeepMimicMotionDataFieldNames.L_HIP_ROT: (29, 33),
+        DeepMimicMotionDataFieldNames.L_KNEE_ROT: (33, 34),
+        DeepMimicMotionDataFieldNames.L_ANKLE_ROT: (34, 38),
+        DeepMimicMotionDataFieldNames.L_SHOULDER_ROT: (38, 42),
+        DeepMimicMotionDataFieldNames.L_ELBOW_ROT: (42, 43),
+    }
 
 
 @dataclass
 class DeepMimicMotionDataSample(MotionDataSample):
-    fields = _fields
+    FieldsType: ClassVar = DeepMimicMotionDataField
 
 
 @dataclass
 class DeepMimicKeyframeMotionDataSample(KeyframeMotionDataSample):
-    fields = _fields
-    BaseSampleType = DeepMimicMotionDataSample
+    FieldsType: ClassVar = DeepMimicMotionDataField
+    BaseSampleType: ClassVar = DeepMimicMotionDataSample
 
 
 class DeepMimicMotion(MapKeyframeMotionDataset):
@@ -44,32 +71,41 @@ class DeepMimicMotion(MapKeyframeMotionDataset):
 
     def __init__(self, path: Union[str, Path], t0: float = 0.0, loop: Optional[Literal["wrap", "none"]] = None) -> None:
         super().__init__()
+
         with open(path, "r") as f:
             data = json.load(f)
-        self.loop = data["Loop"] if loop is None else loop
-        assert self.loop in ["wrap", "none"]
-        self.frames = np.array(data["Frames"])
-        self.dt = self.frames[:, 0]
-        if self.loop == "wrap":
-            t = np.cumsum(np.concatenate([self.dt, self.dt[-2::-1]]))
-        else:
-            t = np.cumsum(self.dt)
-        self.t = np.concatenate([[0], t]) + t0
 
-    @property
-    def raw_len(self) -> int:
-        return len(self.frames)
+        self.loop = data["Loop"] if loop is None else loop
+        assert self.loop in ["wrap", "none", "mirror"]
+
+        frames = np.array(data["Frames"])
+        if self.loop == "mirror":
+            frames = np.concatenate([frames, frames[-2::-1]])
+
+        self.dt = frames[:, 0]
+        t = np.cumsum(self.dt)
+        self.t = np.concatenate([[0], t])[:-1]
+        self.q = frames[:, 1:]
+        self.qdot = np.diff(self.q, axis=0) / self.dt[:-1, None]
+        self.t0 = t0
 
     def __len__(self) -> int:
-        return self.raw_len if self.loop == "none" else 2 * self.raw_len - 1
+        # TODO: last frame is dropped here because we don't have qdot for it
+        return len(self.qdot)
+
+    @property
+    def duration(self) -> float:
+        return self.t[-1]
 
     def __getitem__(self, idx) -> DeepMimicKeyframeMotionDataSample:
-        wrap_idx = idx
-        if self.loop == "wrap" and idx >= self.raw_len:
-            wrap_idx = -(idx % self.raw_len + 2)
-
+        idx = np.clip(idx, 0, len(self) - 1)
+        t = self.t[idx].item()
         return DeepMimicKeyframeMotionDataSample(
-            dt=self.dt[wrap_idx],
-            t=self.t[idx],
-            q=self.frames[wrap_idx, 1:],
+            dt=self.dt[idx].item(),
+            t0=t + self.t0,
+            q0=self.q[idx, :].copy(),
+            q1=self.q[idx + 1, :].copy(),
+            qdot=self.qdot[idx, :].copy(),
+            phase0=t / self.duration,
+            phase1=self.t[idx + 1].item() / self.duration,
         )

@@ -23,27 +23,31 @@ class ContinuousMotionDataset:
         raise NotImplementedError
 
 
+def lerp(a, b, alpha):
+    return a * (1 - alpha) + b * alpha
+
+
 class LerpMotionDataset(ContinuousMotionDataset):
     def __init__(self, kf_dataset: IterableKeyframeMotionDataset) -> None:
         super().__init__(kf_dataset)
         self.kf_dataset = kf_dataset
-        self.kf_ranges = pairwise(iter(self.kf_dataset))
-        self.cur_range = next(self.kf_ranges)
+        self.reset()
 
     def reset(self) -> None:
-        self.kf_ranges = pairwise(iter(self.kf_dataset))
-        self.cur_range = next(self.kf_ranges)
+        self.kf_iter = iter(self.kf_dataset)
+        self.cur_kf = next(self.kf_iter)
 
     def eval(self, t: float) -> Optional[MotionDataSample]:
         assert (
-            t >= self.cur_range[0].t
-        ), f"t = {t} < time of current keyframe {self.cur_range[0].t}, t must be monotonically increasing"
-        while t > self.cur_range[1].t:
+            t >= self.cur_kf.t0
+        ), f"t = {t} < time of current keyframe {self.cur_kf.t0}, t must be monotonically increasing"
+        while t > self.cur_kf.t1:
             try:
-                self.cur_range = next(self.kf_ranges)
+                self.cur_kf = next(self.kf_iter)
             except StopIteration:
                 return None
-        dt = self.cur_range[1].t - self.cur_range[0].t
-        alpha = (t - self.cur_range[0].t) / dt
-        q = self.cur_range[0].q * (1 - alpha) + self.cur_range[1].q * alpha
-        return self.kf_dataset.SampleType.BaseSampleType(t, q)
+        kf = self.cur_kf
+        alpha = (t - kf.t0) / kf.dt
+        q = lerp(kf.q0, kf.q1, alpha)
+        phase = lerp(kf.phase0, kf.phase1, alpha)
+        return self.kf_dataset.SampleType.BaseSampleType(t, q, kf.qdot, phase)

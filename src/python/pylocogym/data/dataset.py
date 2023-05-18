@@ -1,33 +1,99 @@
 from dataclasses import dataclass
-from typing import Type
+from enum import Enum, auto
+from typing import Any, ClassVar, Dict, Iterator, Tuple, Type, Union
 
 import numpy as np
 from numpy.typing import NDArray
+
+
+class StrEnum(str, Enum):
+    """
+    Enum class for motion data field names.
+    """
+
+    def __new__(cls, value, *args, **kwargs):
+        if not isinstance(value, (str, auto)):
+            raise TypeError(f"Values of StrEnums must be strings: {value!r} is a {type(value)}")
+        return super().__new__(cls, value, *args, **kwargs)
+
+    def __str__(self) -> str:
+        return str(self.value)
+
+    def _generate_next_value_(name, *_):
+        return name.lower()
+
+
+class Fields:
+    def __init__(self, data: NDArray) -> None:
+        self.data = data
+
+    FieldNames: ClassVar[Type[Enum]] = StrEnum
+    fields: ClassVar[Dict[FieldNames, Tuple[int, int]]] = {}
+
+    def __getattr__(self, __name: str) -> NDArray:
+        return self[__name]
+
+    def __setattr__(self, __name: str, __value: Any) -> None:
+        if __name in self.fields:
+            self[__name] = __value
+        else:
+            super().__setattr__(__name, __value)
+
+    def __getitem__(self, __name: Union[FieldNames, str]) -> NDArray:
+        range = self.fields[self.FieldNames(__name)]
+        return self.data[range[0] : range[1]]
+
+    def __setitem__(self, __name: Union[FieldNames, str], value: NDArray) -> None:
+        range = self.fields[self.FieldNames(__name)]
+        self.data[range[0] : range[1]] = value
 
 
 @dataclass
 class MotionDataSample:
     t: float
     q: np.ndarray
-    fields = {}
+    qdot: np.ndarray
+    phase: float = 0
 
-    def __getattr__(self, __name: str) -> NDArray:
-        range = self.fields[__name]
-        return self.q[range[0] : range[1]]
+    FieldsType: ClassVar[Type[Fields]] = Fields
+
+    @property
+    def q_fields(self) -> FieldsType:
+        return self.FieldsType(self.q)
+
+    @property
+    def qdot_fields(self) -> FieldsType:
+        return self.FieldsType(self.qdot)
 
 
 @dataclass
 class KeyframeMotionDataSample:
-    t: float
-    q: np.ndarray
+    t0: float
+    q0: np.ndarray
+    q1: np.ndarray
+    qdot: np.ndarray
     dt: float
+    phase0: float = 0
+    phase1: float = 0
 
-    fields = {}
-    BaseSampleType: Type[MotionDataSample] = MotionDataSample
+    FieldsType: ClassVar[Type[Fields]] = Fields
+    BaseSampleType: ClassVar[Type[MotionDataSample]] = MotionDataSample
 
-    def __getattr__(self, __name: str) -> NDArray:
-        range = self.fields[__name]
-        return self.q[range[0] : range[1]]
+    @property
+    def q0_fields(self) -> FieldsType:
+        return self.FieldsType(self.q0)
+
+    @property
+    def q1_fields(self) -> FieldsType:
+        return self.FieldsType(self.q1)
+
+    @property
+    def qdot_fields(self) -> FieldsType:
+        return self.FieldsType(self.qdot)
+
+    @property
+    def t1(self) -> float:
+        return self.t0 + self.dt
 
 
 class IterableKeyframeMotionDataset:
@@ -36,7 +102,7 @@ class IterableKeyframeMotionDataset:
     def __init__(self) -> None:
         pass
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[SampleType]:
         raise NotImplementedError
 
 
@@ -52,10 +118,10 @@ class MapKeyframeMotionDataset(IterableKeyframeMotionDataset):
     def __getitem__(self, idx: int) -> SampleType:
         raise NotImplementedError
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[SampleType]:
         for i in range(len(self)):
             yield self[i]
 
     @property
     def duration(self) -> float:
-        return self[-1].t + self[-1].dt - self[0].t
+        return self[-1].t1 - self[0].t0
