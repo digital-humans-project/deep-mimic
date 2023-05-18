@@ -6,6 +6,7 @@ from typing import ClassVar, Dict, Literal, Optional, Tuple, Union
 
 import numpy as np
 from pylocogym.data.dataset import (
+    Fields,
     KeyframeMotionDataSample,
     MapKeyframeMotionDataset,
     MotionDataSample,
@@ -13,7 +14,7 @@ from pylocogym.data.dataset import (
 )
 
 
-class DeepMimicMotionDataFields(StrEnum):
+class DeepMimicMotionDataFieldNames(StrEnum):
     """
     Enum class for DeepMimic motion data field names.
     """
@@ -34,34 +35,34 @@ class DeepMimicMotionDataFields(StrEnum):
     L_ELBOW_ROT = auto()
 
 
-_fields: Dict[DeepMimicMotionDataFields, Tuple[int, int]] = {
-    DeepMimicMotionDataFields.ROOT_POS: (0, 3),
-    DeepMimicMotionDataFields.ROOT_ROT: (3, 7),
-    DeepMimicMotionDataFields.CHEST_ROT: (7, 11),
-    DeepMimicMotionDataFields.NECK_ROT: (11, 15),
-    DeepMimicMotionDataFields.R_HIP_ROT: (15, 19),
-    DeepMimicMotionDataFields.R_KNEE_ROT: (19, 20),
-    DeepMimicMotionDataFields.R_ANKLE_ROT: (20, 24),
-    DeepMimicMotionDataFields.R_SHOULDER_ROT: (24, 28),
-    DeepMimicMotionDataFields.R_ELBOW_ROT: (28, 29),
-    DeepMimicMotionDataFields.L_HIP_ROT: (29, 33),
-    DeepMimicMotionDataFields.L_KNEE_ROT: (33, 34),
-    DeepMimicMotionDataFields.L_ANKLE_ROT: (34, 38),
-    DeepMimicMotionDataFields.L_SHOULDER_ROT: (38, 42),
-    DeepMimicMotionDataFields.L_ELBOW_ROT: (42, 43),
-}
+class DeepMimicMotionDataField(Fields):
+    FieldNames = DeepMimicMotionDataFieldNames
+    fields: Dict[DeepMimicMotionDataFieldNames, Tuple[int, int]] = {
+        DeepMimicMotionDataFieldNames.ROOT_POS: (0, 3),
+        DeepMimicMotionDataFieldNames.ROOT_ROT: (3, 7),
+        DeepMimicMotionDataFieldNames.CHEST_ROT: (7, 11),
+        DeepMimicMotionDataFieldNames.NECK_ROT: (11, 15),
+        DeepMimicMotionDataFieldNames.R_HIP_ROT: (15, 19),
+        DeepMimicMotionDataFieldNames.R_KNEE_ROT: (19, 20),
+        DeepMimicMotionDataFieldNames.R_ANKLE_ROT: (20, 24),
+        DeepMimicMotionDataFieldNames.R_SHOULDER_ROT: (24, 28),
+        DeepMimicMotionDataFieldNames.R_ELBOW_ROT: (28, 29),
+        DeepMimicMotionDataFieldNames.L_HIP_ROT: (29, 33),
+        DeepMimicMotionDataFieldNames.L_KNEE_ROT: (33, 34),
+        DeepMimicMotionDataFieldNames.L_ANKLE_ROT: (34, 38),
+        DeepMimicMotionDataFieldNames.L_SHOULDER_ROT: (38, 42),
+        DeepMimicMotionDataFieldNames.L_ELBOW_ROT: (42, 43),
+    }
 
 
 @dataclass
 class DeepMimicMotionDataSample(MotionDataSample):
-    Fields: ClassVar = DeepMimicMotionDataFields
-    fields: ClassVar = _fields  # type: ignore
+    FieldsType: ClassVar = DeepMimicMotionDataField
 
 
 @dataclass
 class DeepMimicKeyframeMotionDataSample(KeyframeMotionDataSample):
-    Fields: ClassVar = DeepMimicMotionDataFields
-    fields: ClassVar = _fields  # type: ignore
+    FieldsType: ClassVar = DeepMimicMotionDataField
     BaseSampleType: ClassVar = DeepMimicMotionDataSample
 
 
@@ -83,19 +84,28 @@ class DeepMimicMotion(MapKeyframeMotionDataset):
 
         self.dt = frames[:, 0]
         t = np.cumsum(self.dt)
-        self.t = np.concatenate([[0], t]) + t0
+        self.t = np.concatenate([[0], t])[:-1]
         self.q = frames[:, 1:]
         self.qdot = np.diff(self.q, axis=0) / self.dt[:-1, None]
+        self.t0 = t0
 
     def __len__(self) -> int:
         # TODO: last frame is dropped here because we don't have qdot for it
         return len(self.qdot)
 
+    @property
+    def duration(self) -> float:
+        return self.t[-1]
+
     def __getitem__(self, idx) -> DeepMimicKeyframeMotionDataSample:
         idx = np.clip(idx, 0, len(self) - 1)
+        t = self.t[idx].item()
         return DeepMimicKeyframeMotionDataSample(
             dt=self.dt[idx].item(),
-            t=self.t[idx].item(),
-            q=self.q[idx, :].copy(),
+            t0=t + self.t0,
+            q0=self.q[idx, :].copy(),
+            q1=self.q[idx + 1, :].copy(),
             qdot=self.qdot[idx, :].copy(),
+            phase0=t / self.duration,
+            phase1=self.t[idx + 1].item() / self.duration,
         )

@@ -34,21 +34,20 @@ class LerpMotionDataset(ContinuousMotionDataset):
         self.reset()
 
     def reset(self) -> None:
-        self.kf_ranges = pairwise(iter(self.kf_dataset))
-        self.cur_range = next(self.kf_ranges)
+        self.kf_iter = iter(self.kf_dataset)
+        self.cur_kf = next(self.kf_iter)
 
     def eval(self, t: float) -> Optional[MotionDataSample]:
-        f0, f1 = self.cur_range
         assert (
-            t >= f0.t
-        ), f"t = {t} < time of current keyframe {self.cur_range[0].t}, t must be monotonically increasing"
-        while t > f1.t:
+            t >= self.cur_kf.t0
+        ), f"t = {t} < time of current keyframe {self.cur_kf.t0}, t must be monotonically increasing"
+        while t > self.cur_kf.t1:
             try:
-                self.cur_range = next(self.kf_ranges)
+                self.cur_kf = next(self.kf_iter)
             except StopIteration:
                 return None
-        dt = f1.t - f0.t
-        alpha = (t - f0.t) / dt
-        q = lerp(f0.q, f1.q, alpha)
-        qdot = lerp(f0.qdot, f1.qdot, alpha)
-        return self.kf_dataset.SampleType.BaseSampleType(t, q, qdot)
+        kf = self.cur_kf
+        alpha = (t - kf.t0) / kf.dt
+        q = lerp(kf.q0, kf.q1, alpha)
+        phase = lerp(kf.phase0, kf.phase1, alpha)
+        return self.kf_dataset.SampleType.BaseSampleType(t, q, kf.qdot, phase)

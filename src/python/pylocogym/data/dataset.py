@@ -23,61 +23,77 @@ class StrEnum(str, Enum):
         return name.lower()
 
 
+class Fields:
+    def __init__(self, data: NDArray) -> None:
+        self.data = data
+
+    FieldNames: ClassVar[Type[Enum]] = StrEnum
+    fields: ClassVar[Dict[FieldNames, Tuple[int, int]]] = {}
+
+    def __getattr__(self, __name: str) -> NDArray:
+        return self[__name]
+
+    def __setattr__(self, __name: str, __value: Any) -> None:
+        if __name in self.fields:
+            self[__name] = __value
+        else:
+            super().__setattr__(__name, __value)
+
+    def __getitem__(self, __name: Union[FieldNames, str]) -> NDArray:
+        range = self.fields[self.FieldNames(__name)]
+        return self.data[range[0] : range[1]]
+
+    def __setitem__(self, __name: Union[FieldNames, str], value: NDArray) -> None:
+        range = self.fields[self.FieldNames(__name)]
+        self.data[range[0] : range[1]] = value
+
+
 @dataclass
 class MotionDataSample:
     t: float
     q: np.ndarray
     qdot: np.ndarray
+    phase: float = 0
 
-    Fields: ClassVar[Type[Enum]] = StrEnum
-    fields: ClassVar[Dict[Fields, Tuple[int, int]]] = {}
+    FieldsType: ClassVar[Type[Fields]] = Fields
 
-    def __getattr__(self, __name: str) -> NDArray:
-        return self[__name]
+    @property
+    def q_fields(self) -> FieldsType:
+        return self.FieldsType(self.q)
 
-    def __setattr__(self, __name: str, __value: Any) -> None:
-        if __name in self.fields:
-            self[__name] = __value
-        else:
-            super().__setattr__(__name, __value)
-
-    def __getitem__(self, __name: Union[Fields, str]) -> NDArray:
-        range = self.fields[self.Fields(__name)]
-        return self.q[range[0] : range[1]]
-
-    def __setitem__(self, __name: Union[Fields, str], value: NDArray) -> None:
-        range = self.fields[self.Fields(__name)]
-        self.q[range[0] : range[1]] = value
+    @property
+    def qdot_fields(self) -> FieldsType:
+        return self.FieldsType(self.qdot)
 
 
 @dataclass
 class KeyframeMotionDataSample:
-    t: float
-    q: np.ndarray
+    t0: float
+    q0: np.ndarray
+    q1: np.ndarray
     qdot: np.ndarray
     dt: float
+    phase0: float = 0
+    phase1: float = 0
 
-    Fields: ClassVar[Type[Enum]] = StrEnum
-    fields: ClassVar[Dict[Fields, Tuple[int, int]]] = {}
-
+    FieldsType: ClassVar[Type[Fields]] = Fields
     BaseSampleType: ClassVar[Type[MotionDataSample]] = MotionDataSample
 
-    def __getattr__(self, __name: str) -> NDArray:
-        return self[__name]
+    @property
+    def q0_fields(self) -> FieldsType:
+        return self.FieldsType(self.q0)
 
-    def __setattr__(self, __name: str, __value: Any) -> None:
-        if __name in self.fields:
-            self[__name] = __value
-        else:
-            super().__setattr__(__name, __value)
+    @property
+    def q1_fields(self) -> FieldsType:
+        return self.FieldsType(self.q1)
 
-    def __getitem__(self, __name: Union[Fields, str]) -> NDArray:
-        range = self.fields[self.Fields(__name)]
-        return self.q[range[0] : range[1]]
+    @property
+    def qdot_fields(self) -> FieldsType:
+        return self.FieldsType(self.qdot)
 
-    def __setitem__(self, __name: Union[Fields, str], value: NDArray) -> None:
-        range = self.fields[self.Fields(__name)]
-        self.q[range[0] : range[1]] = value
+    @property
+    def t1(self) -> float:
+        return self.t0 + self.dt
 
 
 class IterableKeyframeMotionDataset:
@@ -108,4 +124,4 @@ class MapKeyframeMotionDataset(IterableKeyframeMotionDataset):
 
     @property
     def duration(self) -> float:
-        return self[-1].t + self[-1].dt - self[0].t
+        return self[-1].t1 - self[0].t0
