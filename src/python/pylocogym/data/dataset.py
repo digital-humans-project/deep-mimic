@@ -8,7 +8,7 @@ from numpy.typing import NDArray
 
 class StrEnum(str, Enum):
     """
-    Enum class for motion data field names.
+    Enum class interchangable with strings.
     """
 
     def __new__(cls, value, *args, **kwargs):
@@ -24,6 +24,14 @@ class StrEnum(str, Enum):
 
 
 class Fields:
+    """
+    Utility class for accessing fields of `q` and `qdot` vectors.
+
+    Fields access is done by attribute access, e.g. `q_fields.root_pos` or indexing, e.g. `q_fields['root_pos']`.
+
+    The names of the fields are defined in the `FieldNames` enum class.
+    """
+
     def __init__(self, data: NDArray) -> None:
         self.data = data
 
@@ -50,53 +58,128 @@ class Fields:
 
 @dataclass
 class MotionDataSample:
+    """
+    Data sample for a single time step of a motion.
+    """
+
     t: float
+    """
+    Time of the sample.
+    """
+
     q: np.ndarray
+    """
+    Configuration vector.
+    """
+
     qdot: np.ndarray
+    """
+    First derivative of the configuration vector.
+    """
+
     phase: float = 0
+    """
+    Phase of the motion in the range [0, 1].
+    """
 
     FieldsType: ClassVar[Type[Fields]] = Fields
+    """
+    Type of the `q_fields` and `qdot_fields` properties. Used for accessing fields of `q` and `qdot` vectors.
+    """
 
     @property
     def q_fields(self) -> FieldsType:
+        """
+        Accessor for the `q` vector fields.
+        """
         return self.FieldsType(self.q)
 
     @property
     def qdot_fields(self) -> FieldsType:
+        """
+        Accessor for the `qdot` vector fields.
+        """
         return self.FieldsType(self.qdot)
 
 
 @dataclass
 class KeyframeMotionDataSample:
+    """
+    Data sample for a keyframe of a motion in a time interval.
+    """
+
     t0: float
+    """
+    Start time of the keyframe.
+    """
+
     q0: np.ndarray
+    """
+    Configuration vector at the start of the keyframe.
+    """
+
     q1: np.ndarray
+    """ 
+    Configuration vector at the end of the keyframe.
+    """
+
     qdot: np.ndarray
+    """
+    First derivative of the configuration vector, defined by `qdot = (q1 - q0) / dt`.
+    """
+
     dt: float
+    """
+    Duration of the keyframe.
+    """
+
     phase0: float = 0
+    """
+    Phase of the motion at the start of the keyframe in the range [0, 1].
+    """
+
     phase1: float = 0
+    """
+    Phase of the motion at the end of the keyframe.
+    """
 
     FieldsType: ClassVar[Type[Fields]] = Fields
     BaseSampleType: ClassVar[Type[MotionDataSample]] = MotionDataSample
 
     @property
     def q0_fields(self) -> FieldsType:
+        """
+        Accessor for the `q0` vector fields.
+        """
         return self.FieldsType(self.q0)
 
     @property
     def q1_fields(self) -> FieldsType:
+        """
+        Accessor for the `q1` vector fields.
+        """
         return self.FieldsType(self.q1)
 
     @property
     def qdot_fields(self) -> FieldsType:
+        """
+        Accessor for the `qdot` vector fields.
+        """
         return self.FieldsType(self.qdot)
 
     @property
     def t1(self) -> float:
+        """
+        End time of the keyframe.
+        """
         return self.t0 + self.dt
 
 
 class IterableKeyframeMotionDataset:
+    """
+    Base class for iterable keyframe motion datasets.
+    """
+
     SampleType: Type[KeyframeMotionDataSample] = KeyframeMotionDataSample
 
     def __init__(self) -> None:
@@ -107,6 +190,10 @@ class IterableKeyframeMotionDataset:
 
 
 class MapKeyframeMotionDataset(IterableKeyframeMotionDataset):
+    """
+    Base class for keyframe motion datasets that can be indexed.
+    """
+
     SampleType = KeyframeMotionDataSample
 
     def __init__(self) -> None:
@@ -124,4 +211,7 @@ class MapKeyframeMotionDataset(IterableKeyframeMotionDataset):
 
     @property
     def duration(self) -> float:
+        """
+        Duration of the motion dataset.
+        """
         return self[-1].t1 - self[0].t0

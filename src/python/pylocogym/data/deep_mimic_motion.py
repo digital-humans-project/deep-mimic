@@ -67,9 +67,20 @@ class DeepMimicKeyframeMotionDataSample(KeyframeMotionDataSample):
 
 
 class DeepMimicMotion(MapKeyframeMotionDataset):
+    """
+    DeepMimic motion data.
+
+    It contains a single motion clip.
+    """
+
     SampleType = DeepMimicKeyframeMotionDataSample
 
-    def __init__(self, path: Union[str, Path], t0: float = 0.0, loop: Optional[Literal["wrap", "none"]] = None) -> None:
+    def __init__(
+        self,
+        path: Union[str, Path],
+        t0: float = 0.0,
+        loop: Optional[Literal["wrap", "none", "mirror"]] = None,
+    ) -> None:
         super().__init__()
 
         with open(path, "r") as f:
@@ -90,7 +101,7 @@ class DeepMimicMotion(MapKeyframeMotionDataset):
         self.t0 = t0
 
     def __len__(self) -> int:
-        # TODO: last frame is dropped here because we don't have qdot for it
+        # dataset length is the number of keyframes (intervals) = number of frames - 1
         return len(self.qdot)
 
     @property
