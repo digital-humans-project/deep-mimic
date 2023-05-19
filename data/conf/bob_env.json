@@ -27,7 +27,8 @@
   },
   "reward_params": {
 
-    "clips_play_speed": 0.5,
+    "clips_play_speed": 1,
+    "clips_repeat_num": 3,
     
     "fwd_vel_cmd": 0.0,
     "weight_velocity": 0.2,
@@ -36,8 +37,8 @@
     "weight_height": 0.05,
     "sigma_height": 0.1,
 
-    "weight_attitude": 0.1,
-    "sigma_attitude": 0.1,
+    "weight_root_ori": 0.1,
+    "sigma_root_ori": 0.1,
 
     "weight_torque": 5.0e-3,
     "sigma_torque": 5.0,
@@ -50,6 +51,9 @@
 
     "weight_joints": 0.5,
     "sigma_joints": 0.1,
+
+    "weight_joints_vel": 0.08,
+    "sigma_joints_vel": 0.1,
 
     "weight_legs": 0.2,
     "sigma_legs": 0.1,
