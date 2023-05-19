@@ -8,7 +8,7 @@ class ObservationData:
         self.num_obs = len(observation_raw)
         self.num_additional_obs = self.num_obs - (num_joints * 2 + 9) + 3 * is_obs_fullstate
         self.is_fullstate = is_obs_fullstate
-        self.time_stamp = observation_raw[-1]
+        self.time_stamp = observation_raw[-2] # observation_raw[-2] = t, observation_raw[-1] = phase
 
         if is_obs_fullstate:
             """Fully observed observation convention:
