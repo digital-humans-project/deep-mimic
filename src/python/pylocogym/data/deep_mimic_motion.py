@@ -109,7 +109,7 @@ class DeepMimicMotion(MapKeyframeMotionDataset):
         return self.t[-1]
 
     def __getitem__(self, idx) -> DeepMimicKeyframeMotionDataSample:
-        idx = np.clip(idx, 0, len(self) - 1)
+        idx = range(len(self))[idx]
         t = self.t[idx].item()
         return DeepMimicKeyframeMotionDataSample(
             dt=self.dt[idx].item(),

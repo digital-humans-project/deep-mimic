@@ -56,6 +56,9 @@ class BobKeyframeMotionDataSample(KeyframeMotionDataSample):
 
 class BobMotionBobAdapter(MapKeyframeMotionDataset):
     SampleType = BobKeyframeMotionDataSample
+    mimic_joints_index = {  0,3,6,18,23,26,27,30,33,28,
+                            31,34,13,16,14,17,1,4,7,2,
+                            5,8,36,37,10,11}
 
     def __init__(
         self,
@@ -64,6 +67,7 @@ class BobMotionBobAdapter(MapKeyframeMotionDataset):
         joint_lower_limit,
         joint_upper_limit,
         joint_default_angle=None,
+        rescale=False,
     ):
         self.in_dataset = in_dataset
         self.joint_angle_limit_low = joint_lower_limit
@@ -76,6 +80,7 @@ class BobMotionBobAdapter(MapKeyframeMotionDataset):
             abs(self.joint_angle_default - self.joint_angle_limit_high),
         )
         self.num_joints = num_joints
+        self.is_rescale_action = rescale
 
     def quart_to_rpy(self, q, mode):
         # q is in (w,x,y,z) format
@@ -91,10 +96,10 @@ class BobMotionBobAdapter(MapKeyframeMotionDataset):
         return scaled_action
 
     def retarget_base_orientation(self, motion_clips_q):
-        (pitch, yaw, roll) = self.quart_to_rpy(motion_clips_q[3:7], "zyx")
-        return (roll, -pitch, yaw)
+        (yaw, pitch, roll)  = self.quart_to_rpy(motion_clips_q[3:7], 'yzx')
+        return yaw, -pitch, roll
 
-    def retarget_joint_angle(self, motion_clips_q, rescale=False):
+    def retarget_joint_angle(self, motion_clips_q):
         """Given a motion_clips orientation data, return a retarget action"""
         joints = np.zeros(self.num_joints)
 
@@ -155,7 +160,7 @@ class BobMotionBobAdapter(MapKeyframeMotionDataset):
         joints[10] = l_knee
         joints[11] = r_knee
 
-        if rescale is True:
+        if self.is_rescale_action is True:
             joints = self.rescale_action(joints)
         else:
             joints = np.minimum(np.maximum(joints, self.joint_angle_limit_low), self.joint_angle_limit_high)
@@ -167,8 +172,8 @@ class BobMotionBobAdapter(MapKeyframeMotionDataset):
 
     def __getitem__(self, idx):
         sample = self.in_dataset[idx]
-        j0 = self.retarget_joint_angle(sample.q0, rescale=True)
-        j1 = self.retarget_joint_angle(sample.q1, rescale=True)
+        j0 = self.retarget_joint_angle(sample.q0)
+        j1 = self.retarget_joint_angle(sample.q1)
         root_rot_0 = self.retarget_base_orientation(sample.q0)
         root_rot_1 = self.retarget_base_orientation(sample.q1)
         root_pos_0 = sample.q0_fields.root_pos
