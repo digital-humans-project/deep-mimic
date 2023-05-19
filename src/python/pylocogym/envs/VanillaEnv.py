@@ -15,8 +15,9 @@ spec.loader.exec_module(pyloco)
 
 from pylocogym.envs.rewards.bob.humanoid_reward import Reward
 from pylocogym.data.deep_mimic_motion import DeepMimicMotion
+from pylocogym.data.deep_mimic_bob_adapter import BobMotionBobAdapter,BobMotionDataFieldNames
 from pylocogym.data.lerp_dataset import LerpMotionDataset
-
+from pylocogym.data.loop_dataset import LoopKeyframeMotionDataset
 
 class VanillaEnv(PylocoEnv):
 
@@ -42,33 +43,59 @@ class VanillaEnv(PylocoEnv):
         
         self.cnt_timestep_size = self._sim.control_timestep_size  # this should be equal to con_dt
         self.current_step = 0
-        # self.max_episode_steps = max_episode_steps
+        
         self.reward_params = reward_params
         self.sum_episode_reward_terms = {}
         self.action_buffer = np.zeros(self.num_joints * 3)  # history of actions [current, previous, past previous]
 
-        self.reward_utils = Reward(self.cnt_timestep_size, self.num_joints, 
-                self.joint_angle_limit_low, self.joint_angle_limit_high, reward_params)
-
         self.rng = np.random.default_rng(
             env_params.get("seed", 1))  # create a local random number generator with seed
         
-        self.dataset = DeepMimicMotion(reward_params['reward_file_path'],0, "none")
+
+        # Set maximum episode length according to motion clips
+        self.clips_play_speed = reward_params['clips_play_speed'] # play speed for motion clips
+        self.clips_repeat_num = reward_params['clips_repeat_num'] # the number of times the clip needs to be repeated
+
+        # Dataloader
+        self.motion = DeepMimicMotion(reward_params['reward_file_path'])
+        self.dataset = BobMotionBobAdapter(self.motion,
+                                           self.num_joints, 
+                                           self.joint_angle_limit_low,
+                                           self.joint_angle_limit_high,
+                                           self.joint_angle_default)
+        self.loop = LoopKeyframeMotionDataset(self.dataset, 
+            num_loop=self.clips_repeat_num, track_fields=[BobMotionDataFieldNames.ROOT_POS])
+        self.lerp = LerpMotionDataset(self.loop)
         
-        self.clips_play_speed = reward_params['clips_play_speed']
-        self.max_episode_steps = (int(self.dataset.duration / self.cnt_timestep_size) - 1)/self.clips_play_speed
-        self.lerp = LerpMotionDataset(self.dataset)
+        # Maximum episdode step
+        self.max_episode_steps = self.clips_repeat_num*(int(self.dataset.duration / self.cnt_timestep_size) - 1)/self.clips_play_speed
+        
+        # Reward class
+        self.reward_utils = Reward(self.cnt_timestep_size, 
+                                   self.num_joints, 
+                                   self.dataset.mimic_joints_index,
+                                   reward_params)
 
     def reset(self, seed=None, return_info=False, options=None):
         # super().reset(seed=seed)  # We need this line to seed self.np_random
         self.current_step = 0
         self.box_throwing_counter = 0
-        self._sim.reset()
+        self.lerp.reset() # reset dataloader
+
+        # Random sample phase from [0,1)
+        # self.phase = np.random.random_sample() 
+        self.phase = np.abs(np.random.normal(loc=0.0, scale=0.2, size=None))
+        self.phase, _ = np.modf(self.phase)
+        initial_time = self.phase * self.dataset.duration
+
+        (q_reset, qdot_reset) =  self.get_initial_state(initial_time, self.lerp)
+        self._sim.reset(q_reset, qdot_reset, initial_time) # q, qdot include root's state(pos,ori,vel,angular vel)
+
         observation = self.get_obs()
         self.sum_episode_reward_terms = {}
         self.action_buffer = np.concatenate(
             (self.joint_angle_default, self.joint_angle_default, self.joint_angle_default), axis=None)
-        self.lerp.reset()
+        
         info = {"msg": "===Episode Reset Done!===\n"}
         return (observation, info) if return_info else observation
 
@@ -91,9 +118,8 @@ class VanillaEnv(PylocoEnv):
         self.action_buffer[0:self.num_joints] = action_applied
 
         # compute reward
-        reward, reward_info = self.reward_utils.compute_reward(observation, self._sim.get_all_motor_torques(), self.action_buffer,
-                                                               self.is_obs_fullstate, self._sim.nominal_base_height, self.lerp,
-                                                               self.clips_play_speed)
+        reward, reward_info = self.reward_utils.compute_reward(observation, self.action_buffer, self.is_obs_fullstate,
+                                                        self._sim.nominal_base_height, self.lerp, self.clips_play_speed)
 
         self.sum_episode_reward_terms = {key: self.sum_episode_reward_terms.get(key, 0) + reward_info.get(key, 0) for
                                          key in reward_info.keys()}
