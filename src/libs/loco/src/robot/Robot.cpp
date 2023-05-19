@@ -25,6 +25,15 @@ void Robot::populateState(RobotState &state, bool useDefaultAngles) const {
     // we'll push the root's state information - ugly code....
     state.setPosition(root->getWorldCoordinates(P3D()));
     state.setOrientation(root->getOrientation());
+    // state.setPosition(P3D(0,0.9,1));
+    // Eigen::Quaterniond q;
+    // double x = 0.5, y = 0.6, z = 0.7;
+    // q = Eigen::AngleAxisd(y, Vector3d::UnitY())
+    //     * Eigen::AngleAxisd(x, Vector3d::UnitX())
+    //     * Eigen::AngleAxisd(z, Vector3d::UnitZ());
+    // std::cout << q << std::endl;
+    // state.setOrientation(q);
+    // the obs should get: obs[3:6] = 0.6, 0.5, 0.7
     state.setVelocity(root->getVelocityForPoint_local(P3D()));
     state.setAngularVelocity(root->getAngularVelocity());
     state.setHeadingAxis(RBGlobals::worldUp);
@@ -194,7 +203,10 @@ void Robot::draw(const gui::Shader &rbShader, float alpha) {
     // and now coordinate frames
     if (showCoordFrame) {
         for (const auto &rb : rbList)
+        {   // only visualize the first one, which is the root
             RBRenderer::drawCoordFrame(rb, rbShader);
+            break;
+        }
     }
 }
 

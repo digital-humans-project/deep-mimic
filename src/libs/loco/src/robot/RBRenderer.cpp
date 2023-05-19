@@ -144,9 +144,12 @@ void RBRenderer::drawMOI(const std::shared_ptr<const RB> &rb, const gui::Shader 
 void RBRenderer::drawEndEffectors(const std::shared_ptr<const RB> &rb, const gui::Shader &shader) {
     for (uint i = 0; i < rb->rbProps.endEffectorPoints.size(); i++) {
         auto &ee = rb->rbProps.endEffectorPoints[i];
-        P3D pos = rb->getWorldCoordinates(ee.endEffectorOffset);
-        V3D color = ee.inContact ? rb->rbProps.contactedEndEffectorDrawColor : rb->rbProps.endEffectorDrawColor;
-        drawSphere(pos, rb->rbProps.endEffectorRadius, shader, color);
+        if(ee.name == "rHand" || ee.name == "lHand" || ee.name == "lFoot"||ee.name == "rFoot")
+        {
+            P3D pos = rb->getWorldCoordinates(ee.endEffectorOffset);
+            V3D color = ee.inContact ? rb->rbProps.contactedEndEffectorDrawColor : rb->rbProps.endEffectorDrawColor;
+            drawSphere(pos, 3*rb->rbProps.endEffectorRadius, shader, color);
+        }
     }
 }
 

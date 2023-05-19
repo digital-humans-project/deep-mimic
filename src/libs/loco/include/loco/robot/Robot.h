@@ -26,9 +26,9 @@ public:
     bool showJointLimits = false;
     bool showJointAngles = false;
     bool showCollisionSpheres = false;
-    bool showEndEffectors = false;
+    bool showEndEffectors = true;
     bool showMOI = false;
-    bool showCoordFrame = false;
+    bool showCoordFrame = true;
 
 protected:
     // root configuration
