@@ -53,7 +53,9 @@ def play(params, reward_path=None):
         while not done:
             eval_env.render("human")
             obs, reward, done, info = eval_env.step([action])
-            print("yaw, pitch, roll:",obs[0,3:6])
+            # print("yaw, pitch, roll:",obs[0,3:6])
+            # print("lf and rf pos:",obs[0,-13:-7])
+            print("now time, now phase", obs[0,-2],obs[0,-1])
         time.sleep(0.1)
             
     eval_env.close()
