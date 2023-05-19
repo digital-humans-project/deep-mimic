@@ -82,7 +82,7 @@ public:
     /**
      * reset with given initial configuration
      */
-    void reset(const crl::dVector &q, const crl::dVector &qDot);
+    void reset(const crl::dVector &q, const crl::dVector &qDot, const double & t0);
 
     /**
      * set generalized coordinates and generalized velocity of robot.
@@ -101,6 +101,9 @@ public:
         return timeStamp_;
     }
 
+    void setTimeStamp(double timeStamp) {
+        timeStamp_ = timeStamp;
+    }
     /**
      * get generalized coordinates of robot configuration
      */

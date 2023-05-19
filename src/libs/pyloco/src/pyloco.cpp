@@ -31,7 +31,7 @@ PYBIND11_MODULE(pyloco, m) {  //Defining module
         .def_readwrite("motor_max_torque", &Simulator::motorMaxTorque)
         .def("get_observation", &Simulator::getObservation, "Get observation implemented in C++ side.")
         .def("reset", py::overload_cast<>(&Simulator::reset), "Reset environment with default state.")
-        .def("reset", py::overload_cast<const crl::dVector &, const crl::dVector &>(&Simulator::reset), "Reset environment with given q and qDot.")
+        .def("reset", py::overload_cast<const crl::dVector &, const crl::dVector &, const double &>(&Simulator::reset), "Reset environment with given q and qDot.")
         .def("step", &Simulator::step)
         .def("set_q_and_qdot", &Simulator::setQAndQDot)
         .def("get_time_stamp", &Simulator::getTimeStamp)

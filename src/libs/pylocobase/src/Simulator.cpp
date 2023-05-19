@@ -99,8 +99,9 @@ void Simulator::reset() {
     setupBox(box2, "box2");
 }
 
-void Simulator::reset(const crl::dVector &q, const crl::dVector &qDot) {
+void Simulator::reset(const crl::dVector &q, const crl::dVector &qDot, const double & t0) {
     reset();
+    setTimeStamp(t0);
     crl::loco::GCRR GCRR(robot_);
     GCRR.setQ(q);
     GCRR.setQDot(qDot);
