@@ -48,15 +48,14 @@ class Reward:
         now_t = observation.time_stamp*clips_play_speed
         
         # =======================
-        # MOTION CLIPS coordinate : X FORWARD, Z RIGHT, Y UP
         # OURS MODEL coordinate   : Z FORWARD, X LEFT, Y UP
         # =======================
 
         # Forward root position reward
         sample = dataloader.eval(now_t)
-        desired_base_pos_x = sample.q[0]
+        desired_base_pos_z = sample.q_fields.root_pos[2]
         now_base_z = observation.pos[2]
-        diff = np.linalg.norm(desired_base_pos_x - now_base_z)
+        diff = np.linalg.norm(desired_base_pos_z - now_base_z)
         sigma_vel = params.get("sigma_velocity", 0)
         weight_vel = params.get("weight_velocity", 0)
         forward_vel_reward = weight_vel * np.exp(-diff**2/(2.0*sigma_vel**2))
@@ -69,7 +68,7 @@ class Reward:
         height_reward = weight_height * np.exp(-diff_squere/(2.0*sigma_height**2))
 
         # Root orientation reward
-        (desired_yaw, desired_pitch, desired_roll) = sample.q[3:6]
+        (desired_yaw, desired_pitch, desired_roll) = sample.q_fields.root_rot
         roll_squere = (observation.roll - desired_roll)**2
         pitch_squere = (observation.pitch - desired_pitch)**2
         yaw_squere = (observation.yaw - desired_yaw)**2
@@ -92,9 +91,12 @@ class Reward:
         sigma_smoothness2 = params.get("sigma_smoothness2", 0)    
         smoothness2_reward = weight_smoothness2 * np.exp(-np.sum(rest_joints_ddot**2)/(2.0*(N-N_mimic)*sigma_smoothness2**2))
 
+
+        motion_joints = sample.q_fields.joints
+        motion_joints_dot = sample.qdot_fields.joints
         # Motion imitation reward 
         joint_angles = observation.joint_angles[list(self.mimic_joints_index)]
-        desired_angles = sample.q[list(self.mimic_joints_index)]
+        desired_angles = motion_joints[list(self.mimic_joints_index)]
         diff = joint_angles - desired_angles
         weight_joints = params.get("weight_joints", 0)
         sigma_joints = params.get("sigma_joints", 0)
@@ -102,7 +104,7 @@ class Reward:
 
         # Leg reawrd (waiting for the end effector reward to take the place of it)
         leg_joints_angles = observation.joint_angles[[1,4,7,10,13,16,2,5,8,11,14,17]]
-        desired_leg_angles = sample.q[[1,4,7,10,13,16,2,5,8,11,14,17]]
+        desired_leg_angles = motion_joints[[1,4,7,10,13,16,2,5,8,11,14,17]]
         diff = leg_joints_angles - desired_leg_angles
         weight_legs = params.get("weight_legs", 0)
         sigma_legs = params.get("sigma_legs", 0)
@@ -110,7 +112,7 @@ class Reward:
 
         # Joint velocities reward
         joint_velocities = observation.joint_vel[list(self.mimic_joints_index)]
-        desired_velocities = sample.qdot[list(self.mimic_joints_index)]
+        desired_velocities = motion_joints_dot[list(self.mimic_joints_index)]
         diff = joint_velocities - desired_velocities
         weight_joints_vel = params.get("weight_joints_vel", 0)
         sigma_joints_vel = params.get("sigma_joints_vel", 0)
