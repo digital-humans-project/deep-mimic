@@ -1,6 +1,8 @@
 import numpy as np
 import urdf_parser_py.urdf as urdf
 from scipy.spatial.transform import Rotation
+import json
+from vis_fk_data import visualise_FK
 
 def extract_euler(quat, mode='xyz'):
         r = Rotation.from_quat(quat)
@@ -30,7 +32,7 @@ def data_mapping(q : np.array):
     data_map['root_chest_joint1'], data_map['root_chest_joint2'], data_map['root_chest_joint3'] = extract_euler(q[8:12])
     data_map['chest_neck_joint1'], data_map['chest_neck_joint2'], data_map['chest_neck_joint3'] = extract_euler(q[12:16])
     data_map['root_right_hip_joint1'], data_map['root_right_hip_joint2'], data_map['root_right_hip_joint3'] = extract_euler(q[16:20])
-    data_map['right_knee'] = q[21]
+    data_map['right_knee'] = q[20]
     data_map['right_knee_right_ankle_joint1'], data_map['right_knee_right_ankle_joint2'],\
         data_map['right_knee_right_ankle_joint3'] = extract_euler(q[21:25])
     data_map['chest_right_shoulder_joint1'], data_map['chest_right_shoulder_joint2'], \
@@ -38,7 +40,7 @@ def data_mapping(q : np.array):
     data_map['right_elbow'] = q[29]
     data_map['root_left_hip_joint1'], data_map['root_left_hip_joint2'], data_map['root_left_hip_joint3'] = extract_euler(q[30:34])
     data_map['left_knee'] = q[34]
-    data_map['left_knee_left_ankle_joint1'], data_map['left_knee_left_ankle_joint1'], data_map['left_knee_left_ankle_joint1'] = extract_euler(q[35:39])
+    data_map['left_knee_left_ankle_joint1'], data_map['left_knee_left_ankle_joint2'], data_map['left_knee_left_ankle_joint3'] = extract_euler(q[35:39])
     data_map['chest_left_shoulder_joint1'], data_map['chest_left_shoulder_joint2'], data_map['chest_left_shoulder_joint3'] = extract_euler(q[39:43])
     data_map['left_elbow'] = q[43]
     data_map['right_wrist'] = 0
@@ -183,31 +185,45 @@ class ForwardKinematics():
         # TODO: Check whether ankles can be added in the mapping...
         return np.array(
             [
-                # self.get_link_world_coordinates('left_ankle'),
-                # self.get_link_world_coordinates('right_ankle'),
-                # self.get_link_world_coordinates('left_wrist'),
-                # self.get_link_world_coordinates('right_wrist'),
-                self.get_link_world_coordinates('left_knee'),
-                self.get_link_world_coordinates('right_knee'),
+                self.get_link_world_coordinates('left_ankle'),
+                self.get_link_world_coordinates('right_ankle'),
                 self.get_link_world_coordinates('left_wrist'),
                 self.get_link_world_coordinates('right_wrist'),
             ])
-        
+    
+def parse_motion_data(urdf_data_path, motion):
+    end_effector_cood = []
+    for i in range(motion.shape[0]):
+        fk = ForwardKinematics(urdf_data_path, motion[i])
+        end_effector_cood.append(fk.get_end_effectors_world_coordinates())
+    end_effector_cood = np.array(end_effector_cood)
+    return end_effector_cood
+
 
 
 if __name__ == "__main__":
     
     # Manula data test
+    # motion = [
+    #      [        0.0333333015,        0.0000000000,        0.7577040000,        0.0000000000,       -0.9961860398,        0.0263161892,       -0.0021968997,        0.0831625275,        0.9891732485,       -0.0012968493,        0.0157765220,       -0.1458962099,        0.9575524872,       -0.0850737799,        0.1872322494,        0.2019895318,        0.9624490404,       -0.0077550214,       -0.1415960060,        0.2314784556,       -1.0795419930,        0.9644092584,        0.0987325715,       -0.1487828062,        0.3950136873,        0.9527796532,       -0.2560283448,        0.1562378638,       -0.0474357361,        1.5520426350,        0.8650128696,        0.0867517513,        0.1259648339,        0.4778699924,       -0.8698441741,        0.9978054552,       -0.0422917100,       -0.0396654391,       -0.0319740158,        0.8646200308,        0.4293653762,        0.1461038540,        0.2161740962,        2.2097567570],
+    #      [        0.0333333015,        0.0071708444,        0.7627360000,       -0.0010782631,       -0.9966884035,        0.0196266459,       -0.0127152041,        0.0778803233,        0.9894542435,       -0.0047531444,        0.0100641608,       -0.1444175210,        0.9601754267,       -0.0864328594,        0.1836119737,        0.1920394591,        0.9644462354,       -0.0184400587,       -0.1529455748,        0.2147348931,       -1.0555873490,        0.9653237588,        0.0944503968,       -0.1428874431,        0.3970084816,        0.9539088588,       -0.2535200776,        0.1482817766,       -0.0616277052,        1.5403112662,        0.8723205719,        0.0754557007,        0.1339583807,        0.4641318878,       -0.8451495105,        0.9968932340,       -0.0526353394,       -0.0494114378,       -0.0314946164,        0.8738418463,        0.4183765245,        0.1310174601,        0.2102282965,        2.2068392952],
+    #      [        0.0333333015,        0.0165471210,        0.7693890000,       -0.0040233937,       -0.9969061975,        0.0128295968,       -0.0235852159,        0.0738726770,        0.9900176675,       -0.0077922951,        0.0045254868,       -0.1406549611,        0.9635854119,       -0.0873562269,        0.1751337634,        0.1822092440,        0.9663925240,       -0.0292071827,       -0.1640127651,        0.1957862175,       -1.0213143186,        0.9664744149,        0.0919035346,       -0.1385599469,        0.3956580864,        0.9543634312,       -0.2526418060,        0.1395195811,       -0.0767909212,        1.5280580849,        0.8803353374,        0.0630091482,        0.1412631486,        0.4484242008,       -0.8155871236,        0.9958159574,       -0.0626401764,       -0.0588541001,       -0.0310319545,        0.8832629851,        0.4066816510,        0.1175508986,        0.2015894843,        2.2154124623]
+    # ]
 
-    motion = [
-         [        0.0333333015,        0.0000000000,        0.7577040000,        0.0000000000,       -0.9961860398,        0.0263161892,       -0.0021968997,        0.0831625275,        0.9891732485,       -0.0012968493,        0.0157765220,       -0.1458962099,        0.9575524872,       -0.0850737799,        0.1872322494,        0.2019895318,        0.9624490404,       -0.0077550214,       -0.1415960060,        0.2314784556,       -1.0795419930,        0.9644092584,        0.0987325715,       -0.1487828062,        0.3950136873,        0.9527796532,       -0.2560283448,        0.1562378638,       -0.0474357361,        1.5520426350,        0.8650128696,        0.0867517513,        0.1259648339,        0.4778699924,       -0.8698441741,        0.9978054552,       -0.0422917100,       -0.0396654391,       -0.0319740158,        0.8646200308,        0.4293653762,        0.1461038540,        0.2161740962,        2.2097567570],
-         [        0.0333333015,        0.0071708444,        0.7627360000,       -0.0010782631,       -0.9966884035,        0.0196266459,       -0.0127152041,        0.0778803233,        0.9894542435,       -0.0047531444,        0.0100641608,       -0.1444175210,        0.9601754267,       -0.0864328594,        0.1836119737,        0.1920394591,        0.9644462354,       -0.0184400587,       -0.1529455748,        0.2147348931,       -1.0555873490,        0.9653237588,        0.0944503968,       -0.1428874431,        0.3970084816,        0.9539088588,       -0.2535200776,        0.1482817766,       -0.0616277052,        1.5403112662,        0.8723205719,        0.0754557007,        0.1339583807,        0.4641318878,       -0.8451495105,        0.9968932340,       -0.0526353394,       -0.0494114378,       -0.0314946164,        0.8738418463,        0.4183765245,        0.1310174601,        0.2102282965,        2.2068392952],
-         [        0.0333333015,        0.0165471210,        0.7693890000,       -0.0040233937,       -0.9969061975,        0.0128295968,       -0.0235852159,        0.0738726770,        0.9900176675,       -0.0077922951,        0.0045254868,       -0.1406549611,        0.9635854119,       -0.0873562269,        0.1751337634,        0.1822092440,        0.9663925240,       -0.0292071827,       -0.1640127651,        0.1957862175,       -1.0213143186,        0.9664744149,        0.0919035346,       -0.1385599469,        0.3956580864,        0.9543634312,       -0.2526418060,        0.1395195811,       -0.0767909212,        1.5280580849,        0.8803353374,        0.0630091482,        0.1412631486,        0.4484242008,       -0.8155871236,        0.9958159574,       -0.0626401764,       -0.0588541001,       -0.0310319545,        0.8832629851,        0.4066816510,        0.1175508986,        0.2015894843,        2.2154124623]
-    ]
+    # #Change the path to where your "deep-mimic" project is stored.
+    # fk = ForwardKinematics(r"/media/ankitaghosh/Data/ETH/digitalHumans/Project/humanoid.urdf", motion[1])
+    # print(f'All end-effect positions: {fk.get_end_effectors_world_coordinates()}')
 
-    # Change the path to where your "deep-mimic" project is stored.
-    fk = ForwardKinematics(r"C:\Users\kosta\Desktop\second_semester\digital_humans\final_project\deep-mimic\data\robots\deep-mimic\humanoid.urdf", motion[1])
-    print(f'All end-effect positions: {fk.get_end_effectors_world_coordinates()}')
+    urdf_data_path = "/media/ankitaghosh/Data/ETH/digitalHumans/Project/humanoid.urdf"
+    motion_data_path = '/media/ankitaghosh/Data/ETH/digitalHumans/Project/DeepMimic/data/motions/humanoid3d_jog.txt'
+    with open(motion_data_path, "r") as json_file:
+        data = json.load(json_file)
+    motion = np.array(data["Frames"])
+    end_effector_cood = parse_motion_data(urdf_data_path, motion)
+    visualise_FK(end_effector_cood)
+    
+    # print(end_effector_cood.shape)
+    # np.save(motion_data_path.replace('.txt', '_endeff.npy'), end_effector_cood)
 
 
     
