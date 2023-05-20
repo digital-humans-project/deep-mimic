@@ -46,6 +46,7 @@ def data_mapping(q : np.array):
     data_map['left_elbow'] = q[43]
     data_map['right_wrist'] = 0
     data_map['left_wrist_joint'] = 0
+    data_map['root'] = 0
     return data_map
 
 class ForwardKinematics():
@@ -75,7 +76,7 @@ class ForwardKinematics():
             A SINGLE line of data of the "Deep Mimic" paper.
         """
         self.__robot = urdf.URDF.from_xml_file(urdf_file_path)
-        self.__data_map = data_mapping(q)
+        self.data_map = data_mapping(q)
         
     def get_link_world_coordinates(self, link_str: str):
         """
@@ -118,22 +119,37 @@ class ForwardKinematics():
         # Initialize the to-be-returned-position to zero.
         local_position = np.zeros(3)
 
-        # print(f'Initial rigid body: {link_str}')
 
         # ALGORITHM EXPLANATION
-        # The skeletal structure of the agent is traversed "inwards" (from the end effector "link_str" towards the root).
         # STEP 1) Translate the CoM from the origin of the link's frame (which is identical to that of the joint's frame).
+        # The skeletal structure of the agent is traversed "inwards" (from the end effector "link_str" towards the root).
         # STEP 2) Apply rotation of the translated CoM around the joint.
-        # STEP 3) Move to the next (i.e. closer to the root) rigid body of the skeleton and apply STEP 1 and STEP 2.
+        # STEP 3) Move to the next (i.e. closer to the root) rigid body of the skeleton and apply  STEP 2.
         # STEP 4) Once the root is reached, apply the rotation & translation of the root (i.e. the rotation & translation of the whole agent)
         # Return the result.
-        while link_str != 'root':
+
+        # STEP 1
+        try:
+            com_local_position = np.array(self.__robot.link_map[link_str].inertial.origin.xyz)
+        except AttributeError:
+            # In the Robot Operating System (ROS), no mention of origin implies that there is no translation of the CoM.
+            # However, the (external) parser does not detect this. Therefore, it must be handled manually.
+            com_local_position = np.zeros(3)
+
+
+        # print(f'Initial rigid body: {link_str}')
+
+        # print(f'local_position before = {local_position}\n'\
+                # f'local_position after = {local_position + com_local_position}')
+        local_position += com_local_position
+
+        while link_str != 'base':
             # "joint" is the name of the joint which is responsible for connecting the current link "link_str"
             # and the previous link in the hierarchy "parent".  
             (joint, parent) = self.__robot.parent_map[link_str]
 
             # "angle" := scalar (float)  representing the amount of radians the CoM/end-effector is going to be rotated around "axis".
-            angle = self.__data_map[joint]
+            angle = self.data_map[joint]
             axis = self.__robot.joint_map[joint].axis
             # In the case of fixed joints (where axis is "None"), return any random rotation,
             # since its mapping angle is going to be zero (0).
@@ -145,17 +161,6 @@ class ForwardKinematics():
             # print(f'axis, angle = {axis, angle} of joint = {joint}')
 
 
-            # STEP 1
-            try:
-                com_local_position = np.array(self.__robot.link_map[link_str].inertial.origin.xyz)
-            except AttributeError:
-                # In the Robot Operating System (ROS), no mention of origin implies that there is no translation of the CoM.
-                # However, the (external) parser does not detect this. Therefore, it must be handled manually.
-                com_local_position = np.zeros(3)
-
-            # print(f'local_position before = {local_position}\n'\
-            #       f'local_position after = {local_position + com_local_position}')
-            local_position += com_local_position
 
             # STEP 2
             # Create a rotation matrix around the axis "axis" with angle "angle" and apply it to the (possibly translated) CoM.  
@@ -174,16 +179,21 @@ class ForwardKinematics():
                  relative_to_parent_link_translation = np.zeros(3)            
             local_position += relative_to_parent_link_translation
 
+            # print(f'relative_to_parent_link_translation = {relative_to_parent_link_translation}')
+
 
             link_str = parent # Prepare for next iteration.
             # print(f'Rigid body updated to {link_str}')
+
+        
 
         # STEP 4
         # print(f'self.__data_map["root_rotation"] = {self.__data_map["root_rotation"].as_rotvec()}')
         # print(f'self.__data_map["root_translation"] = {self.__data_map["root_translation"]}')
 
-        local_position = self.__data_map['root_rotation'].apply(local_position)
-        local_position += self.__data_map['root_translation']
+        print(f'self.data_map["root_rotation"] = {self.data_map["root_rotation"]}')
+        local_position = self.data_map['root_rotation'].apply(local_position)
+        local_position += self.data_map['root_translation']
 
         # The accumulations of local positions have formed the position in the global coordinate frame!
         return local_position
@@ -210,6 +220,8 @@ def parse_motion_data(urdf_data_path, motion):
 
 
 if __name__ == "__main__":
+
+    
     
     # Manula data test
     # motion = [
@@ -226,7 +238,12 @@ if __name__ == "__main__":
 
     # Change the path to where your "deep-mimic" project is stored.
     fk = ForwardKinematics(r"C:\Users\kosta\Desktop\second_semester\digital_humans\final_project\deep-mimic\data\robots\deep-mimic\humanoid.urdf", motion[0])
+    for key, value in fk.data_map.items():
+        if not key == 'root_rotation' and not key == 'root_translation':
+            fk.data_map[key] = 0
+        print(key, fk.data_map[key])
     print(f'All end-effect positions: {fk.get_end_effectors_world_coordinates()}')
+    print(fk.get_link_world_coordinates('neck'))
      # Change path to your path for the "humanoid.urdf". The file can be found int his project as well.
     urdf_data_path = r"C:\Users\kosta\Desktop\second_semester\digital_humans\final_project\deep-mimic\data\robots\deep-mimic\humanoid.urdf"
     motion_data_path = r'C:\Users\kosta\Desktop\second_semester\digital_humans\final_project\deep-mimic\data\deepmimic\motions\humanoid3d_jump.txt'
