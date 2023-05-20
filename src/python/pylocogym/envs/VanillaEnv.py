@@ -15,8 +15,8 @@ spec.loader.exec_module(pyloco)
 
 
 from pylocogym.data.deep_mimic_bob_adapter import (
-    BobMotionBobAdapter,
     BobMotionDataFieldNames,
+    DeepMimicMotionBobAdapter,
 )
 from pylocogym.data.deep_mimic_motion import DeepMimicMotion
 from pylocogym.data.lerp_dataset import LerpMotionDataset
@@ -66,7 +66,7 @@ class VanillaEnv(PylocoEnv):
         )
 
         # Dataloader
-        self.dataset = BobMotionBobAdapter(
+        self.dataset = DeepMimicMotionBobAdapter(
             reward_params["reward_file_path"],
             self.num_joints,
             self.joint_angle_limit_low,

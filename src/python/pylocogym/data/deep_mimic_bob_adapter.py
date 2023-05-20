@@ -54,7 +54,7 @@ class BobKeyframeMotionDataSample(KeyframeMotionDataSample):
     BaseSampleType: ClassVar = BobMotionDataSample
 
 
-class BobMotionBobAdapter(DeepMimicMotion):
+class DeepMimicMotionBobAdapter(DeepMimicMotion):
     SampleType = BobKeyframeMotionDataSample
     mimic_joints_index = {0, 3, 6, 18, 23, 26, 27, 30, 33, 28, 31, 34, 13, 16, 14, 17, 1, 4, 7, 2, 5, 8, 36, 37, 10, 11}
 
