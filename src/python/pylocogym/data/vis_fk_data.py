@@ -35,6 +35,6 @@ def visualise_FK(arr):
     plt.show()
 
 
-np_file_path = '/media/ankitaghosh/Data/ETH/digitalHumans/Project/DeepMimic/data/motions/humanoid3d_walk_endeff.npy'
-arr = np.load(np_file_path)
+# np_file_path = '/media/ankitaghosh/Data/ETH/digitalHumans/Project/DeepMimic/data/motions/humanoid3d_walk_endeff.npy'
+# arr = np.load(np_file_path)
 #visualise_FK(arr)
