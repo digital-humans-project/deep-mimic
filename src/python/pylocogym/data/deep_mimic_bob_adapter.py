@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 from enum import auto
-from typing import ClassVar, Dict, Tuple
+from pathlib import Path
+from typing import ClassVar, Dict, Optional, Tuple, Union
 
 import numpy as np
 from pylocogym.data.dataset import (
     Fields,
     KeyframeMotionDataSample,
-    MapKeyframeMotionDataset,
     MotionDataSample,
     StrEnum,
 )
@@ -54,22 +54,25 @@ class BobKeyframeMotionDataSample(KeyframeMotionDataSample):
     BaseSampleType: ClassVar = BobMotionDataSample
 
 
-class BobMotionBobAdapter(MapKeyframeMotionDataset):
+class BobMotionBobAdapter(DeepMimicMotion):
     SampleType = BobKeyframeMotionDataSample
-    mimic_joints_index = {  0,3,6,18,23,26,27,30,33,28,
-                            31,34,13,16,14,17,1,4,7,2,
-                            5,8,36,37,10,11}
+    mimic_joints_index = {0, 3, 6, 18, 23, 26, 27, 30, 33, 28, 31, 34, 13, 16, 14, 17, 1, 4, 7, 2, 5, 8, 36, 37, 10, 11}
 
     def __init__(
         self,
-        in_dataset: DeepMimicMotion,
+        path: Union[str, Path],
         num_joints,
         joint_lower_limit,
         joint_upper_limit,
         joint_default_angle=None,
         rescale=False,
+        initial_pose: Optional[np.ndarray] = None,
+        initial_pose_dt: float = 0.03333,
     ):
-        self.in_dataset = in_dataset
+        if initial_pose is not None:
+            super().__init__(path, t0=initial_pose_dt)
+        else:
+            super().__init__(path)
         self.joint_angle_limit_low = joint_lower_limit
         self.joint_angle_limit_high = joint_upper_limit
         self.joint_angle_default = joint_default_angle
@@ -81,6 +84,8 @@ class BobMotionBobAdapter(MapKeyframeMotionDataset):
         )
         self.num_joints = num_joints
         self.is_rescale_action = rescale
+        self.initial_pose = initial_pose
+        self.initial_pose_dt = initial_pose_dt
 
     def quart_to_rpy(self, q, mode):
         # q is in (w,x,y,z) format
@@ -96,7 +101,7 @@ class BobMotionBobAdapter(MapKeyframeMotionDataset):
         return scaled_action
 
     def retarget_base_orientation(self, motion_clips_q):
-        (yaw, pitch, roll)  = self.quart_to_rpy(motion_clips_q[3:7], 'yzx')
+        (yaw, pitch, roll) = self.quart_to_rpy(motion_clips_q[3:7], "yzx")
         return yaw, -pitch, roll
 
     def retarget_joint_angle(self, motion_clips_q):
@@ -168,10 +173,20 @@ class BobMotionBobAdapter(MapKeyframeMotionDataset):
         return joints
 
     def __len__(self) -> int:
-        return len(self.in_dataset)
+        len = super().__len__()
+        if self.initial_pose is not None:
+            len += 1
+        return len
 
-    def __getitem__(self, idx):
-        sample = self.in_dataset[idx]
+    @property
+    def duration(self) -> float:
+        res = super().duration
+        if self.initial_pose is not None:
+            res += self.initial_pose_dt
+        return res
+
+    def _get_item(self, idx):
+        sample = super().__getitem__(idx)
         j0 = self.retarget_joint_angle(sample.q0)
         j1 = self.retarget_joint_angle(sample.q1)
         root_rot_0 = self.retarget_base_orientation(sample.q0)
@@ -193,3 +208,30 @@ class BobMotionBobAdapter(MapKeyframeMotionDataset):
             phase0=sample.phase0,
             phase1=sample.phase1,
         )
+
+    def __getitem__(self, idx):
+        if self.initial_pose is not None:
+            new_idx = idx
+            if idx != 0:
+                new_idx = idx - 1
+            sample = self._get_item(new_idx)
+            sample.phase0 = sample.t0 / self.duration
+            sample.phase1 = sample.t1 / self.duration
+            if idx == 0:
+                q0, q1 = self.initial_pose, sample.q0
+                dt = self.initial_pose_dt
+                qdot = (q1 - q0) / dt
+                orig_sample = super().__getitem__(0)
+                root_ang_vel = angular_velocities(np.array([1, 0, 0, 0]), orig_sample.q0_fields.root_rot, sample.dt)
+                qdot[3:6] = root_ang_vel
+                return BobKeyframeMotionDataSample(
+                    t0=0,
+                    q0=q0,
+                    q1=q1,
+                    qdot=qdot,
+                    dt=dt,
+                    phase0=0,
+                    phase1=sample.phase0,
+                )
+            return sample
+        return self._get_item(idx)
