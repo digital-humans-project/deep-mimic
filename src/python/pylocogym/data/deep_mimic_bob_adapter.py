@@ -172,6 +172,11 @@ class DeepMimicMotionBobAdapter(DeepMimicMotion):
 
         return joints
 
+    def retarget_base_pos(self, motion_clips_q):
+        # our's x axis == -1 * motion's z axis
+        # our's z axis == motion's x axis
+        return np.array([-motion_clips_q[2], motion_clips_q[1], motion_clips_q[0]])
+    
     def __len__(self) -> int:
         len = super().__len__()
         if self.initial_pose is not None:
@@ -191,13 +196,16 @@ class DeepMimicMotionBobAdapter(DeepMimicMotion):
         j1 = self.retarget_joint_angle(sample.q1)
         root_rot_0 = self.retarget_base_orientation(sample.q0)
         root_rot_1 = self.retarget_base_orientation(sample.q1)
-        root_pos_0 = sample.q0_fields.root_pos
-        root_pos_1 = sample.q1_fields.root_pos
+        root_pos_0 = self.retarget_base_pos(sample.q0)
+        root_pos_1 = self.retarget_base_pos(sample.q1)
         root_ang_vel = angular_velocities(sample.q0_fields.root_rot, sample.q1_fields.root_rot, sample.dt)
         q0 = np.concatenate([root_pos_0, root_rot_0, j0])
         q1 = np.concatenate([root_pos_1, root_rot_1, j1])
         qdot = (q1 - q0) / sample.dt
-        qdot[3:6] = root_ang_vel
+        # our's y axis == motion's y axis
+        # our's x axis == -1 * motion's z axis
+        # our's z axis == motion's x axis
+        qdot[3:6] = np.array([root_ang_vel[1], -root_ang_vel[2], root_ang_vel[0]])
 
         return BobKeyframeMotionDataSample(
             t0=sample.t0,
@@ -218,7 +226,7 @@ class DeepMimicMotionBobAdapter(DeepMimicMotion):
             sample.phase0 = sample.t0 / self.duration
             sample.phase1 = sample.t1 / self.duration
             if idx == 0:
-                q0, q1 = self.initial_pose, sample.q0
+                q0, q1 = self.initial_pose.copy(), sample.q0
                 dt = self.initial_pose_dt
                 qdot = (q1 - q0) / dt
                 orig_sample = super().__getitem__(0)

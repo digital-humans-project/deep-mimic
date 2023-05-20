@@ -298,17 +298,7 @@ class PylocoEnv(gym.Env):
         # Get desired root state, joint state according to phase
         sample = dataloader.eval(initial_time)
         q_reset = sample.q.copy()
-        q_reset[0] = -sample.q[2]  # our's x axis == -1 * motion's z axis
-        q_reset[2] = sample.q[0]   # our's z axis == motion's x axis
-
         qdot_reset = sample.qdot.copy()
-        qdot_reset[0] = -sample.qdot[2] # our's x axis == -1 * motion's z axis
-        qdot_reset[2] = sample.qdot[0]  # our's z axis == motion's x axis
-
-        # qdot_rest[3:6] == our's coordinate y, x, z angular velocity
-        qdot_reset[3] = sample.qdot[4]  # our's y axis == motion's y axis
-        qdot_reset[4] = -sample.qdot[5] # our's x axis == -1 * motion's z axis
-        qdot_reset[5] = sample.qdot[3]  # our's z axis == motion's x axis
         
         # for debug useage
         # q_reset = np.zeros(len(self.joint_angle_default) + 6)

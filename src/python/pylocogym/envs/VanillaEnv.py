@@ -18,7 +18,6 @@ from pylocogym.data.deep_mimic_bob_adapter import (
     BobMotionDataFieldNames,
     DeepMimicMotionBobAdapter,
 )
-from pylocogym.data.deep_mimic_motion import DeepMimicMotion
 from pylocogym.data.lerp_dataset import LerpMotionDataset
 from pylocogym.data.loop_dataset import LoopKeyframeMotionDataset
 from pylocogym.envs.rewards.bob.humanoid_reward import Reward
@@ -60,7 +59,7 @@ class VanillaEnv(PylocoEnv):
         self.clips_repeat_num = reward_params["clips_repeat_num"]  # the number of times the clip needs to be repeated
         self.initial_pose = np.concatenate(
             [
-                np.array([0, 0.9, 0, 0, 0, 0]),
+                np.array([0, self._sim.nominal_base_height, 0, 0, 0, 0]),
                 self.joint_angle_default,
             ]
         )
@@ -97,12 +96,14 @@ class VanillaEnv(PylocoEnv):
 
         # Random sample phase from [0,1)
         # self.phase = np.random.random_sample()
-        self.phase = np.abs(np.random.normal(loc=0.0, scale=0.2, size=None))
-        self.phase, _ = np.modf(self.phase)
+        # self.phase = np.abs(np.random.normal(loc=0.0, scale=0.2, size=None))
+        # self.phase, _ = np.modf(self.phase)
+        self.phase = 0
         initial_time = self.phase * self.dataset.duration
 
         (q_reset, qdot_reset) = self.get_initial_state(initial_time, self.lerp)
-        self._sim.reset(q_reset, qdot_reset, initial_time)  # q, qdot include root's state(pos,ori,vel,angular vel)
+        # self._sim.reset(q_reset, qdot_reset, initial_time)  # q, qdot include root's state(pos,ori,vel,angular vel)
+        self._sim.reset()
 
         observation = self.get_obs()
         self.sum_episode_reward_terms = {}
