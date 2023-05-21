@@ -9,46 +9,6 @@ def extract_euler(quat, mode='xyz'):
         euler = r.as_euler(mode)
         return euler
 
-def data_mapping(q : np.array):
-    """
-    Parameters
-    ----------
-    q : np.array
-        A single time step sample from the Deep Mimic dataset.
-        Currently, the mapping has been done manually (a.k.a. "by hand").
-
-    Returns
-    -------
-    : dict, string -> str -> Union[float|np.array|Rotation|None]
-        A mapping from each 1D joint to its corresponding scalar angle.
-        str -> float: Joints. This is the most common form of key-value pairs.
-        str -> np.array: only applies for the root translation. It is a 3D vector, i.e. dict['root_position'].shape() = (3,)
-        str -> Rotation: only applies for root rotation. dict['root_rotation'] -> Rotation
-        str -> None: applies for joints which could not be identified by Hu Jiangpeng (胡江鹏), a.k.a Marshall.
-    """
-    data_map = {}
-    data_map['root_translation'] = np.array([q[1], q[2], q[3]])
-    data_map['root_rotation'] = Rotation.from_quat([*q[5:8], q[4]])
-    # The quaternions are provided in w, x, y, z, while ".as_euler()" accepts x, y, z, w format.
-    data_map['root_chest_joint1'], data_map['root_chest_joint2'], data_map['root_chest_joint3'] = extract_euler([*q[9:12], q[8]])
-    data_map['chest_neck_joint1'], data_map['chest_neck_joint2'], data_map['chest_neck_joint3'] = extract_euler([*q[13:16], q[12]])
-    data_map['root_right_hip_joint1'], data_map['root_right_hip_joint2'], data_map['root_right_hip_joint3'] = extract_euler([*q[17:20], q[16]])
-    data_map['right_knee'] = q[20]
-    data_map['right_knee_right_ankle_joint1'], data_map['right_knee_right_ankle_joint2'],\
-        data_map['right_knee_right_ankle_joint3'] = extract_euler([*q[22:25], q[21]])
-    data_map['chest_right_shoulder_joint1'], data_map['chest_right_shoulder_joint2'], \
-          data_map['chest_right_shoulder_joint3'] = extract_euler([*q[26:29], q[25]])
-    data_map['right_elbow'] = q[29]
-    data_map['root_left_hip_joint1'], data_map['root_left_hip_joint2'], data_map['root_left_hip_joint3'] = extract_euler([*q[31:34], q[30]])
-    data_map['left_knee'] = q[34]
-    data_map['left_knee_left_ankle_joint1'], data_map['left_knee_left_ankle_joint2'], data_map['left_knee_left_ankle_joint3'] = extract_euler([*q[36:39], q[35]])
-    data_map['chest_left_shoulder_joint1'], data_map['chest_left_shoulder_joint2'], data_map['chest_left_shoulder_joint3'] = extract_euler([*q[40:43], q[39]])
-    data_map['left_elbow'] = q[43]
-    data_map['right_wrist'] = 0
-    data_map['left_wrist_joint'] = 0
-    data_map['root'] = 0
-    return data_map
-
 class ForwardKinematics():
     """
     The forward kinematics is a class whose purpose is to extract the 3D position of any link (rigid body) of an agent.
@@ -65,7 +25,7 @@ class ForwardKinematics():
     data_map : dict, str -> Union[float|np.array|Rotation|None]
         For more information about the form of the dictionary, see "data_mapping(np.array)".
     """
-    def __init__(self, urdf_file_path: str, q: np.array):
+    def __init__(self, urdf_file_path: str):
         """
         Parameters
         ----------
@@ -76,7 +36,51 @@ class ForwardKinematics():
             A SINGLE line of data of the "Deep Mimic" paper.
         """
         self.__robot = urdf.URDF.from_xml_file(urdf_file_path)
-        self.data_map = data_mapping(q)
+        self.__data_map = None
+
+    def load_motion_clip_frame(self, q: np.array):
+        self.__data_map = self.__generate_data_mapping(q)
+
+    def __generate_data_mapping(self, q : np.array):
+        """
+        Parameters
+        ----------
+        q : np.array
+            A single time step sample from the Deep Mimic dataset.
+            Currently, the mapping has been done manually (a.k.a. "by hand").
+
+        Returns
+        -------
+        : dict, string -> str -> Union[float|np.array|Rotation|None]
+            A mapping from each 1D joint to its corresponding scalar angle.
+            str -> float: Joints. This is the most common form of key-value pairs.
+            str -> np.array: only applies for the root translation. It is a 3D vector, i.e. dict['root_position'].shape() = (3,)
+            str -> Rotation: only applies for root rotation. dict['root_rotation'] -> Rotation
+            str -> None: applies for joints which could not be identified by Hu Jiangpeng (胡江鹏), a.k.a Marshall.
+        """
+        data_map = {}
+        data_map['root_translation'] = np.array([q[1], q[2], q[3]])
+        data_map['root_rotation'] = Rotation.from_quat([*q[5:8], q[4]])
+        # The quaternions are provided in w, x, y, z, while ".as_euler()" accepts x, y, z, w format.
+        data_map['root_chest_joint1'], data_map['root_chest_joint2'], data_map['root_chest_joint3'] = extract_euler([*q[9:12], q[8]])
+        data_map['chest_neck_joint1'], data_map['chest_neck_joint2'], data_map['chest_neck_joint3'] = extract_euler([*q[13:16], q[12]])
+        data_map['root_right_hip_joint1'], data_map['root_right_hip_joint2'], data_map['root_right_hip_joint3'] = extract_euler([*q[17:20], q[16]])
+        data_map['right_knee'] = q[20]
+        data_map['right_knee_right_ankle_joint1'], data_map['right_knee_right_ankle_joint2'],\
+            data_map['right_knee_right_ankle_joint3'] = extract_euler([*q[22:25], q[21]])
+        data_map['chest_right_shoulder_joint1'], data_map['chest_right_shoulder_joint2'], \
+            data_map['chest_right_shoulder_joint3'] = extract_euler([*q[26:29], q[25]])
+        data_map['right_elbow'] = q[29]
+        data_map['root_left_hip_joint1'], data_map['root_left_hip_joint2'], data_map['root_left_hip_joint3'] = extract_euler([*q[31:34], q[30]])
+        data_map['left_knee'] = q[34]
+        data_map['left_knee_left_ankle_joint1'], data_map['left_knee_left_ankle_joint2'], data_map['left_knee_left_ankle_joint3'] = extract_euler([*q[36:39], q[35]])
+        data_map['chest_left_shoulder_joint1'], data_map['chest_left_shoulder_joint2'], data_map['chest_left_shoulder_joint3'] = extract_euler([*q[40:43], q[39]])
+        data_map['left_elbow'] = q[43]
+        data_map['right_wrist'] = 0
+        data_map['left_wrist_joint'] = 0
+        data_map['root'] = 0
+
+        return data_map
         
     def get_link_world_coordinates(self, link_str: str):
         """
@@ -149,7 +153,7 @@ class ForwardKinematics():
             (joint, parent) = self.__robot.parent_map[link_str]
 
             # "angle" := scalar (float)  representing the amount of radians the CoM/end-effector is going to be rotated around "axis".
-            angle = self.data_map[joint]
+            angle = self.__data_map[joint]
             axis = self.__robot.joint_map[joint].axis
             # In the case of fixed joints (where axis is "None"), return any random rotation,
             # since its mapping angle is going to be zero (0).
@@ -191,8 +195,8 @@ class ForwardKinematics():
         local_position += self.__robot.link_map['root'].inertial.origin.xyz
 
         # STEP 4
-        local_position = self.data_map['root_rotation'].apply(local_position)
-        local_position += self.data_map['root_translation']
+        local_position = self.__data_map['root_rotation'].apply(local_position)
+        local_position += self.__data_map['root_translation']
 
         # The accumulations of local positions have formed the position in the global coordinate frame!
         return local_position
@@ -210,8 +214,9 @@ class ForwardKinematics():
     
 def parse_motion_data(urdf_data_path, motion):
     end_effector_cood = []
+    fk = ForwardKinematics(urdf_file_path=urdf_data_path)
     for i in range(motion.shape[0]):
-        fk = ForwardKinematics(urdf_data_path, motion[i])
+        fk.load_motion_clip_frame(motion[i])
         end_effector_cood.append(fk.get_end_effectors_world_coordinates())
     end_effector_cood = np.array(end_effector_cood)
     return end_effector_cood
@@ -237,7 +242,8 @@ if __name__ == "__main__":
 
     # Print the numerical results of the first frame of the animation clip
     # Change the path to where your "deep-mimic" project is stored.
-    fk = ForwardKinematics(r"C:\Users\kosta\Desktop\second_semester\digital_humans\final_project\deep-mimic\data\robots\deep-mimic\humanoid.urdf", motion[0])
+    fk = ForwardKinematics(r"C:\Users\kosta\Desktop\second_semester\digital_humans\final_project\deep-mimic\data\robots\deep-mimic\humanoid.urdf")
+    fk.load_motion_clip_frame(motion[0])
     
     # # Include the following "for" loop in case you wish to see the results of the rest pose (where all limbs are fully extended).
     # for key, value in fk.data_map.items():
@@ -252,7 +258,7 @@ if __name__ == "__main__":
     # Visualization of a whole data clip.
     # Change path to your path for the "humanoid.urdf". The file can be found int his project as well.
     urdf_data_path = r"C:\Users\kosta\Desktop\second_semester\digital_humans\final_project\deep-mimic\data\robots\deep-mimic\humanoid.urdf"
-    motion_data_path = r'C:\Users\kosta\Desktop\second_semester\digital_humans\final_project\deep-mimic\data\deepmimic\motions\humanoid3d_zombie_walk.txt'
+    motion_data_path = r'C:\Users\kosta\Desktop\second_semester\digital_humans\final_project\deep-mimic\data\deepmimic\motions\humanoid3d_jump.txt'
     with open(motion_data_path, "r") as json_file:
         data = json.load(json_file)
     motion = np.array(data["Frames"])
