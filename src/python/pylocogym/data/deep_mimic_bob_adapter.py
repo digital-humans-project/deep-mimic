@@ -101,21 +101,21 @@ class DeepMimicMotionBobAdapter(DeepMimicMotion):
         return scaled_action
 
     def retarget_base_orientation(self, motion_clips_q):
-        (yaw, pitch, roll) = self.quart_to_rpy(motion_clips_q[3:7], "yzx")
+        (yaw, pitch, roll) = self.quart_to_rpy(motion_clips_q[3:7], "YZX")
         return yaw, -pitch, roll
 
     def retarget_joint_angle(self, motion_clips_q):
         """Given a motion_clips orientation data, return a retarget action"""
         joints = np.zeros(self.num_joints)
 
-        (chest_z, chest_y, chest_x) = self.quart_to_rpy(motion_clips_q[7:11], "zyx")
-        (neck_z, neck_y, neck_x) = self.quart_to_rpy(motion_clips_q[11:15], "zyx")
-        (r_hip_z, r_hip_x, r_hip_y) = self.quart_to_rpy(motion_clips_q[15:19], "zxy")
-        (r_ankle_z, r_ankle_x, r_ankle_y) = self.quart_to_rpy(motion_clips_q[20:24], "zxy")
-        (r_shoulder_z, r_shoulder_x, r_shoulder_y) = self.quart_to_rpy(motion_clips_q[24:28], "zxy")
-        (l_hip_z, l_hip_x, l_hip_y) = self.quart_to_rpy(motion_clips_q[29:33], "zxy")
-        (l_ankle_z, l_ankle_x, l_ankle_y) = self.quart_to_rpy(motion_clips_q[34:38], "zxy")
-        (l_shoulder_z, l_shoulder_x, l_shoulder_y) = self.quart_to_rpy(motion_clips_q[38:42], "zxy")
+        (chest_z, chest_y, chest_x) = self.quart_to_rpy(motion_clips_q[7:11], "ZYX")
+        (neck_z, neck_y, neck_x) = self.quart_to_rpy(motion_clips_q[11:15], "ZYX")
+        (r_hip_z, r_hip_x, r_hip_y) = self.quart_to_rpy(motion_clips_q[15:19], "ZXY")
+        (r_ankle_z, r_ankle_x, r_ankle_y) = self.quart_to_rpy(motion_clips_q[20:24], "ZXY")
+        (r_shoulder_z, r_shoulder_x, r_shoulder_y) = self.quart_to_rpy(motion_clips_q[24:28], "ZXY")
+        (l_hip_z, l_hip_x, l_hip_y) = self.quart_to_rpy(motion_clips_q[29:33], "ZXY")
+        (l_ankle_z, l_ankle_x, l_ankle_y) = self.quart_to_rpy(motion_clips_q[34:38], "ZXY")
+        (l_shoulder_z, l_shoulder_x, l_shoulder_y) = self.quart_to_rpy(motion_clips_q[38:42], "ZXY")
 
         # chest - xyz euler angle
         joints[0] = -chest_z
@@ -158,12 +158,12 @@ class DeepMimicMotionBobAdapter(DeepMimicMotion):
         l_elbow = motion_clips_q[42:43]
 
         # elbow - revolute joint
-        joints[36] = l_elbow
-        joints[37] = r_elbow
+        joints[36] = -l_elbow
+        joints[37] = -r_elbow
 
         # knee - revolute joint
-        joints[10] = l_knee
-        joints[11] = r_knee
+        joints[10] = -l_knee
+        joints[11] = -r_knee
 
         if self.is_rescale_action is True:
             joints = self.rescale_action(joints)
