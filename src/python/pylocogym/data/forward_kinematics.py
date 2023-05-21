@@ -2,9 +2,8 @@ import numpy as np
 import urdf_parser_py.urdf as urdf
 from scipy.spatial.transform import Rotation
 import json
-from vis_fk_data import visualise_FK
 
-def extract_euler(quat, mode='xyz'):
+def extract_euler(quat, mode='XYZ'):
         r = Rotation.from_quat(quat)
         euler = r.as_euler(mode)
         return euler
