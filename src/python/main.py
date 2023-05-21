@@ -17,7 +17,6 @@ if __name__ == "__main__":
     parser.add_argument('-vr', '--videoRecorder', help="Activate video recorder to record a video footage.",
                         required=False, action='store_true')
     parser.add_argument('-c', '--config', help="Path to config file", required=False)
-    parser.add_argument('--rewardFile', help="Path to reward file", required=True)
     parser.add_argument('--logDir', help="Name of log directory to use for prediction", required=False)
     parser.add_argument('--step', help="Predict using the model after n time steps of training", required=False)
     parser.add_argument('-wb', '--wandb', help="Enable logging to wandb", required=False, action='store_true')
@@ -29,9 +28,6 @@ if __name__ == "__main__":
     log_path = PYLOCO_LOG_PATH
     data_path = PYLOCO_DATA_PATH
 
-    rewardFile_formatted = args.rewardFile.replace(".py", "").replace("./","").replace("/","_")
-    if args.rewardFile is not None:
-        args.rewardFile = os.path.join("src", "python", "pylocogym", "envs", "rewards", args.rewardFile)
 
     if not args.test:
         # =============
@@ -48,14 +44,17 @@ if __name__ == "__main__":
         with open(config_path, 'r') as f:
             params = json.load(f)
 
+        # loading file
+        urdf_file = "data/robots/deep-mimic/humanoid.urdf"
+        motion_clip_file = "humanoid3d_walk.txt"
+        motion_clip_file = os.path.join("data", "deepmimic", "motions", motion_clip_file)
+
         # train parameters
         hyp_params = params['train_hyp_params']
         steps = hyp_params['time_steps']
-        dir_name = "{id}-{rew}-{steps:.1f}M".format(id=params['env_id'], rew=rewardFile_formatted, steps=float(steps / 1e6))
+        dir_name = "{id}-{clips}-{steps:.1f}M".format(id=params['env_id'], clips=motion_clip_file, steps=float(steps / 1e6))
 
 
-        motion_clip_file = "humanoid3d_walk.txt"
-        motion_clip_file = os.path.join("data", "deepmimic", "motions", motion_clip_file)
 
         # training
         scripts.train(
@@ -66,5 +65,6 @@ if __name__ == "__main__":
             video_recorder=args.videoRecorder,
             wandb_log=args.wandb,
             config_path=config_path,
-            reward_path=motion_clip_file
+            motion_clips_path=motion_clip_file,
+            urdf_path=urdf_file
         )

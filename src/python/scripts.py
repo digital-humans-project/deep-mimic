@@ -21,7 +21,16 @@ def manage_save_path(log_dir, name):
     return save_path
 
 
-def train(params, log_path, dir_name, debug, video_recorder, wandb_log, reward_path=None, config_path='config.json'):
+def train(params,
+          log_path, 
+          dir_name, 
+          debug, 
+          video_recorder, 
+          wandb_log, 
+          motion_clips_path=None,
+          urdf_path = None, 
+          config_path='config.json'):
+    
     """create a model and train it"""
     save_path = manage_save_path(log_path, dir_name)
 
@@ -35,13 +44,15 @@ def train(params, log_path, dir_name, debug, video_recorder, wandb_log, reward_p
     model_params = params['model_params']
     reward_params = params['reward_params']
 
-    n_envs = hyp_params['num_envs'] if (not debug) else 1
+    n_envs = 1
     max_episode_steps = hyp_params.get('max_episode_steps', 500)
     max_evaluation_steps = hyp_params.get('max_evaluation_steps', 500)
     seed = hyp_params.get("seed", 313)
 
-    if reward_path is not None:
-        reward_params["reward_file_path"] = reward_path  # add reward path to reward params
+    if motion_clips_path is not None:
+        reward_params["motion_clips_file_path"] = motion_clips_path  # add reward path to reward params
+    if urdf_path is not None:
+        env_params["urdf_path"] = urdf_path
 
     # =============
     # weights and biases
@@ -57,14 +68,17 @@ def train(params, log_path, dir_name, debug, video_recorder, wandb_log, reward_p
             dir=log_path
         )
         wandb.save(config_path)
-        if reward_path is not None:
-            wandb.save(reward_path)
+        if motion_clips_path is not None:
+            wandb.save(motion_clips_path)
 
     # =============
     # create vectorized environment for training
     # =============
 
-    env_kwargs = {"max_episode_steps": max_episode_steps, "env_params": env_params, "reward_params": reward_params}
+    env_kwargs = {"max_episode_steps": max_episode_steps, 
+                  "env_params": env_params, 
+                  "reward_params": reward_params}
+    
     env = make_vec_env(
         env_id,
         n_envs=n_envs,
@@ -184,8 +198,8 @@ def train(params, log_path, dir_name, debug, video_recorder, wandb_log, reward_p
     # =============
 
     sh_copy(config_path, utils.os.path.join(save_path, "config.json"))
-    if reward_path is not None:
-        sh_copy(reward_path, utils.os.path.join(save_path, "reward.py"))
+    if motion_clips_path is not None:
+        sh_copy(motion_clips_path, utils.os.path.join(save_path, "reward.py"))
 
     # =============
     # start training
