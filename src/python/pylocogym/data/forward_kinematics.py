@@ -187,11 +187,10 @@ class ForwardKinematics():
 
         
 
-        # STEP 4
-        # print(f'self.__data_map["root_rotation"] = {self.__data_map["root_rotation"].as_rotvec()}')
-        # print(f'self.__data_map["root_translation"] = {self.__data_map["root_translation"]}')
+        # Apply offset of 0.07.
+        local_position += self.__robot.link_map['root'].inertial.origin.xyz
 
-        print(f'self.data_map["root_rotation"] = {self.data_map["root_rotation"]}')
+        # STEP 4
         local_position = self.data_map['root_rotation'].apply(local_position)
         local_position += self.data_map['root_translation']
 
@@ -236,22 +235,32 @@ if __name__ == "__main__":
          [        0.0333333015,        0.0165471210,        0.7693890000,       -0.0040233937,       -0.9969061975,        0.0128295968,       -0.0235852159,        0.0738726770,        0.9900176675,       -0.0077922951,        0.0045254868,       -0.1406549611,        0.9635854119,       -0.0873562269,        0.1751337634,        0.1822092440,        0.9663925240,       -0.0292071827,       -0.1640127651,        0.1957862175,       -1.0213143186,        0.9664744149,        0.0919035346,       -0.1385599469,        0.3956580864,        0.9543634312,       -0.2526418060,        0.1395195811,       -0.0767909212,        1.5280580849,        0.8803353374,        0.0630091482,        0.1412631486,        0.4484242008,       -0.8155871236,        0.9958159574,       -0.0626401764,       -0.0588541001,       -0.0310319545,        0.8832629851,        0.4066816510,        0.1175508986,        0.2015894843,        2.2154124623]
     ]
 
+    # Print the numerical results of the first frame of the animation clip
     # Change the path to where your "deep-mimic" project is stored.
     fk = ForwardKinematics(r"C:\Users\kosta\Desktop\second_semester\digital_humans\final_project\deep-mimic\data\robots\deep-mimic\humanoid.urdf", motion[0])
-    for key, value in fk.data_map.items():
-        if not key == 'root_rotation' and not key == 'root_translation':
-            fk.data_map[key] = 0
-        print(key, fk.data_map[key])
+    
+    # # Include the following "for" loop in case you wish to see the results of the rest pose (where all limbs are fully extended).
+    # for key, value in fk.data_map.items():
+    #     if not key == 'root_rotation' and not key == 'root_translation':
+    #         fk.data_map[key] = 0
+    #     print(key, fk.data_map[key])
+
     print(f'All end-effect positions: {fk.get_end_effectors_world_coordinates()}')
-    print(fk.get_link_world_coordinates('neck'))
-     # Change path to your path for the "humanoid.urdf". The file can be found int his project as well.
+
+
+
+    # Visualization of a whole data clip.
+    # Change path to your path for the "humanoid.urdf". The file can be found int his project as well.
     urdf_data_path = r"C:\Users\kosta\Desktop\second_semester\digital_humans\final_project\deep-mimic\data\robots\deep-mimic\humanoid.urdf"
-    motion_data_path = r'C:\Users\kosta\Desktop\second_semester\digital_humans\final_project\deep-mimic\data\deepmimic\motions\humanoid3d_jump.txt'
+    motion_data_path = r'C:\Users\kosta\Desktop\second_semester\digital_humans\final_project\deep-mimic\data\deepmimic\motions\humanoid3d_zombie_walk.txt'
     with open(motion_data_path, "r") as json_file:
         data = json.load(json_file)
     motion = np.array(data["Frames"])
     end_effector_cood = parse_motion_data(urdf_data_path, motion)
     visualise_FK(end_effector_cood)
+
+    # After visualizing the results, it seems that the feet are touching the floor when the forward kinematics elevation is at 0.1
+    # If the height of the foot is taken into consideration, the actual difference should be even less (i.e. closer to 0).
 
 
     
