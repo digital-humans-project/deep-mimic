@@ -17,7 +17,7 @@
   },
   "environment_params": {
     "robot_model": "Bob",
-    "control_rate": 30.0,
+    "control_rate": 60.0,
     "simulation_rate": 120.0,
     "motors_kp": 300.0,
     "motors_kd": 50.0,
@@ -31,17 +31,14 @@
     "clips_repeat_num": 3,
     
     "fwd_vel_cmd": 0.0,
-    "weight_velocity": 0.2,
-    "sigma_velocity": 0.2,
+    "weight_velocity": 0.5,
+    "sigma_velocity": 0.1,
 
     "weight_height": 0.05,
     "sigma_height": 0.1,
 
     "weight_root_ori": 0.1,
     "sigma_root_ori": 0.1,
-
-    "weight_torque": 5.0e-3,
-    "sigma_torque": 5.0,
 
     "weight_smoothness1": 1.0e-2,
     "sigma_smoothness1": 2.0,
