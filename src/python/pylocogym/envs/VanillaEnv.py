@@ -18,7 +18,7 @@ from pylocogym.data.deep_mimic_bob_adapter import (
     BobMotionDataFieldNames,
     DeepMimicMotionBobAdapter,
 )
-from pylocogym.data.deep_mimic_motion import DeepMimicMotion
+from pylocogym.data.deep_mimic_motion import DeepMimicMotion, DeepMimicMotionDataFieldNames
 from pylocogym.data.lerp_dataset import LerpMotionDataset
 from pylocogym.data.loop_dataset import LoopKeyframeMotionDataset
 from pylocogym.envs.rewards.bob.humanoid_reward import Reward
@@ -66,20 +66,24 @@ class VanillaEnv(PylocoEnv):
         )
 
         # Dataloader
-        self.motion = DeepMimicMotion(reward_params["motion_clips_file_path"],0)
+        self.motion = DeepMimicMotion(reward_params["motion_clips_file_path"])
         self.dataset = DeepMimicMotionBobAdapter(
             reward_params["motion_clips_file_path"],
             self.num_joints,
             self.joint_angle_limit_low,
             self.joint_angle_limit_high,
             self.joint_angle_default,
-            initial_pose=self.initial_pose,
+            # initial_pose=self.initial_pose,
         )
         self.loop = LoopKeyframeMotionDataset(
             self.dataset, num_loop=self.clips_repeat_num, track_fields=[BobMotionDataFieldNames.ROOT_POS]
         )
         self.lerp = LerpMotionDataset(self.loop)
-        self.motion_lerp = LerpMotionDataset(self.motion)
+
+        self.motion_loop = LoopKeyframeMotionDataset(
+            self.motion, num_loop=self.clips_repeat_num, track_fields=[DeepMimicMotionDataFieldNames.ROOT_POS]
+        )
+        self.motion_lerp = LerpMotionDataset(self.motion_loop)
 
         # Maximum episdode step
         self.max_episode_steps = (
