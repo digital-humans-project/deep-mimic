@@ -4,7 +4,7 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 import time
 
-def test(params, reward_path=None, data_path = None):
+def test(params, motion_clips_path=None, urdf_path = None):
     """Render environment using given action"""
 
     # =============
@@ -20,9 +20,11 @@ def test(params, reward_path=None, data_path = None):
     seed = hyp_params.get("seed", 313)
     env_kwargs = {"max_episode_steps": max_episode_steps, "env_params": env_params, "reward_params": reward_params}
 
-    if reward_path is not None:
-        reward_params["reward_file_path"] = reward_path  # add reward path to reward params
-    
+    if motion_clips_path is not None:
+        reward_params["motion_clips_file_path"] = motion_clips_path  # add reward path to reward params
+    if urdf_path is not None:
+        env_params["urdf_path"] = urdf_path
+        
     # =============
     # create a simple environment for evaluation
     # =============
