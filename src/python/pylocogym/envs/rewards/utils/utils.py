@@ -46,6 +46,14 @@ class ObservationData:
             # joint velocity:
             self.joint_vel = observation_raw[12 + num_joints:12 + 2 * num_joints]
 
+            # end effectors:
+            self.lf = observation_raw[-14:-11]
+            self.rf = observation_raw[-11:-8]
+            self.lh = observation_raw[-8:-5]
+            self.rh = observation_raw[-5:-2]
+
+            self.end_effectors = np.vstack((self.lf,self.rf,self.lh,self.rh))
+
         else:
             """Partially observed observation convention:
                    observation = [ base height (y), pitch, roll, joint angles,

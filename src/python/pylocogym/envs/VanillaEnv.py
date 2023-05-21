@@ -18,6 +18,7 @@ from pylocogym.data.deep_mimic_bob_adapter import (
     BobMotionDataFieldNames,
     DeepMimicMotionBobAdapter,
 )
+from pylocogym.data.deep_mimic_motion import DeepMimicMotion
 from pylocogym.data.lerp_dataset import LerpMotionDataset
 from pylocogym.data.loop_dataset import LoopKeyframeMotionDataset
 from pylocogym.envs.rewards.bob.humanoid_reward import Reward
@@ -65,8 +66,9 @@ class VanillaEnv(PylocoEnv):
         )
 
         # Dataloader
+        self.motion = DeepMimicMotion(reward_params["motion_clips_file_path"],0)
         self.dataset = DeepMimicMotionBobAdapter(
-            reward_params["reward_file_path"],
+            reward_params["motion_clips_file_path"],
             self.num_joints,
             self.joint_angle_limit_low,
             self.joint_angle_limit_high,
@@ -77,6 +79,7 @@ class VanillaEnv(PylocoEnv):
             self.dataset, num_loop=self.clips_repeat_num, track_fields=[BobMotionDataFieldNames.ROOT_POS]
         )
         self.lerp = LerpMotionDataset(self.loop)
+        self.motion_lerp = LerpMotionDataset(self.motion)
 
         # Maximum episdode step
         self.max_episode_steps = (
@@ -85,7 +88,11 @@ class VanillaEnv(PylocoEnv):
 
         # Reward class
         self.reward_utils = Reward(
-            self.cnt_timestep_size, self.num_joints, self.dataset.mimic_joints_index, reward_params
+            self.cnt_timestep_size, 
+            self.num_joints, 
+            self.dataset.mimic_joints_index, 
+            reward_params,
+            env_params["urdf_path"]
         )
 
     def reset(self, seed=None, return_info=False, options=None):
@@ -93,6 +100,7 @@ class VanillaEnv(PylocoEnv):
         self.current_step = 0
         self.box_throwing_counter = 0
         self.lerp.reset()  # reset dataloader
+        self.motion_lerp.reset() # reset
 
         # Random sample phase from [0,1)
         # self.phase = np.random.random_sample()
@@ -138,6 +146,7 @@ class VanillaEnv(PylocoEnv):
             self.is_obs_fullstate,
             self._sim.nominal_base_height,
             self.lerp,
+            self.motion_lerp,
             self.clips_play_speed,
         )
 
