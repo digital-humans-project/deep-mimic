@@ -29,15 +29,15 @@ cd REPO_PATH
 ./DeepMimicCore/build.sh
 ```
 This should generate a ```DeepMimicCore/DeepMimic.py``` file. \
-Possible errors that can be encountered during the process and their solutions: ``freeglut: build fails with multiple definitions```: This happens due to gcc version issues. Modify the code in required files according to this 
-[solution](https://gitweb.gentoo.org/repo/gentoo.git/tree/media-libs/freeglut/files/freeglut-3.2.1-gcc10-fno-common.patch?id=f9102571b69d9fc05471a592fda252681fdfdef1)
+Possible errors that can be encountered during the process and their solutions: ```freeglut: build fails with multiple definitions```: This happens due to gcc version issues. Modify the code in required files according to this 
+[solution](https://gitweb.gentoo.org/repo/gentoo.git/tree/media-libs/freeglut/files/freeglut-3.2.1-gcc10-fno-common.patch?id=f9102571b69d9fc05471a592fda252681fdfdef1).
 
 4. Now try running the command: ```python3 DeepMimic.py --arg_file args/play_motion_humanoid3d_args.txt``` \
-Possible errors and solutions: \
+Possible errors and solutions: 
 - ```ImportError: libGLEW.so.2.1: cannot open shared object file: No such file or directory search for libGLEW.so.2.1```
 Solution:
 ```
-sudo ln -s /path/to/libGLEW.so.2.1  /usr/lib/x86****/libGLEW.so.2.1 
+sudo ln -s /path/to/libGLEW.so.2.1  /usr/lib/x86****/libGLEW.so.2.1
 sudo ln -s /path/to/libGLEW.so.2.1.0  /usr/lib/x86****/libGLEW.so.2.1.0
 ```
 - ```ImportError: libBulletDynamics.so.2.88: cannot open shared object file: No such file or directory```
