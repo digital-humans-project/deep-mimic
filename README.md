@@ -7,7 +7,7 @@ noted: an ugly code version, just for testing avaibility of whole thing
 
 ## STEP 1: Decided which motions clip to learn
 
-- go finds `src/python/main.py` line 57:
+- go finds `src/python/main.py` line 49:
 ```sh 
 motion_clip_file = "humanoid3d_walk.txt"
 ```
@@ -23,15 +23,17 @@ motion_clip_file = "humanoid3d_walk.txt"
 def compute_reward():
     inplements 6 reward terms
 
-    original one(the same as in assignment2)
-    1. height reward, (make the root pos reaches desired height)
-    2. torque reward, (punish large torque)
-    3. smoothness reward (make robot move smoothly)
+    ## Those for robot's root
+    1. root_height reward, (make the root y pos mimic data desired height)
+    2. forward_vel_reward (compared for each time_steps, the difference between the root x&z position and that from our model)
+    3. root_ori_reward (make the root ori mimic data desired ori)
+    
 
-    New-added reward
-    1.forward_vel_reward (compared for each time_steps, the difference between the root x&z position and that from our model)
-    2.attitude_reward (pushied large root orientation change)
-    3.joint_reward (mimic the motion clips)
+    ## Those for robot's joints
+    4. smoothness reward (make the useless joints move smoothly)
+    5. joint_reward (mimic the motion clips)
+    6. joint_vel_reward (mimic the motion clips)
+    7. end_effector_reward (mimic the motion clips)
 ```
 
 - noted: these designs are merely naive versions, only for the walking task,
