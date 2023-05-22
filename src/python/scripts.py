@@ -61,6 +61,7 @@ def train(params,
     if wandb_log:
         wandb.init(
             project="DH-Project",
+            entity="dh-project",
             name=save_path.split("/")[-1],
             config=params,
             sync_tensorboard=True,
