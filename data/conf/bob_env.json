@@ -27,7 +27,7 @@
   },
   "reward_params": {
 
-    "clips_play_speed": 0.5,
+    "clips_play_speed": 1,
     "clips_repeat_num": 3,
     
     "fwd_vel_cmd": 0.0,

@@ -178,7 +178,7 @@ class PylocoEnv(gym.Env):
         base_height = observation[1] if self.is_obs_fullstate else observation[0]
 
         # early termination
-        if base_height < (self.base_height_default / 2) \
+        if base_height < (self.base_height_default / 3) \
                 or (not self.observation_space.contains(observation)) \
                 or self._sim.is_robot_collapsed():
             if not self.observation_space.contains(observation):
