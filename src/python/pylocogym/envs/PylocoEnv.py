@@ -298,7 +298,7 @@ class PylocoEnv(gym.Env):
         # Get desired root state, joint state according to phase
         sample = dataloader.eval(initial_time)
         q_reset = sample.q.copy()
-        qdot_reset = sample.qdot.copy()
+        qdot_reset = self.clips_play_speed*sample.qdot.copy()
         
         # for debug useage
         # q_reset = np.zeros(len(self.joint_angle_default) + 6)
@@ -310,6 +310,20 @@ class PylocoEnv(gym.Env):
 
         return q_reset, qdot_reset
 
+    def sample_initial_state(self):
+        # Random sample phase from [0,1)
+        seed = np.random.random_sample()
+        # self.phase = np.abs(np.random.normal(loc=0.0, scale=0.2, size=None))
+        # self.phase, _ = np.modf(self.phase)
+        if seed < 0.7:
+            return 0
+        if seed < 0.8:
+            return 0.2
+        if seed < 0.9:
+            return 0.4
+        if seed < 0.95:
+            return 0.6
+        return 0.8
 
     def get_feet_status(self):
         status = FeetStatus()

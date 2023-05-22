@@ -106,16 +106,13 @@ class VanillaEnv(PylocoEnv):
         self.lerp.reset()  # reset dataloader
         self.motion_lerp.reset() # reset
 
-        # Random sample phase from [0,1)
-        # self.phase = np.random.random_sample()
-        # self.phase = np.abs(np.random.normal(loc=0.0, scale=0.2, size=None))
-        # self.phase, _ = np.modf(self.phase)
-        self.phase = 0
-        initial_time = self.phase * self.dataset.duration
 
-        (q_reset, qdot_reset) = self.get_initial_state(initial_time, self.lerp)
-        # self._sim.reset(q_reset, qdot_reset, initial_time)  # q, qdot include root's state(pos,ori,vel,angular vel)
-        self._sim.reset()
+        self.phase = self.sample_initial_state()
+        self.initial_time = self.phase * self.dataset.duration
+
+        (q_reset, qdot_reset) = self.get_initial_state(self.initial_time, self.lerp)
+        self._sim.reset(q_reset, qdot_reset, self.initial_time)  # q, qdot include root's state(pos,ori,vel,angular vel)
+        # self._sim.reset()
 
         observation = self.get_obs()
         self.sum_episode_reward_terms = {}
@@ -148,10 +145,10 @@ class VanillaEnv(PylocoEnv):
             observation,
             self.action_buffer,
             self.is_obs_fullstate,
-            self._sim.nominal_base_height,
             self.lerp,
             self.motion_lerp,
             self.clips_play_speed,
+            self.initial_time
         )
 
         self.sum_episode_reward_terms = {

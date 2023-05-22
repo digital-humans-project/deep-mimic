@@ -29,10 +29,10 @@ class Reward:
                        observation_raw, 
                        action_buffer, 
                        is_obs_fullstate,
-                       nominal_base_height,
                        retarget_data,
                        original_data, 
-                       clips_play_speed):
+                       clips_play_speed,
+                       t_0):
         """
         Compute the reward based on observation (Vanilla Environment).
 
@@ -59,7 +59,7 @@ class Reward:
 
         # Accelerate or decelerate motion clips, usually deceleration
         # (clips_play_speed < 1 nomarlly)
-        now_t = observation.time_stamp*clips_play_speed
+        now_t = (observation.time_stamp - t_0)*clips_play_speed + t_0
 
         # =======================
         # OURS MODEL coordinate   : Z FORWARD, X LEFT, Y UP
@@ -79,7 +79,8 @@ class Reward:
 
         # Root height reward
         height = observation.y
-        diff_squere = (height - nominal_base_height)**2
+        desired_height = sample.q_fields.root_pos[1]
+        diff_squere = (height - desired_height)**2
         sigma_height = params.get("sigma_height", 0)
         weight_height = params.get("weight_height", 0)
         height_reward = weight_height * np.exp(-diff_squere/(2.0*sigma_height**2))

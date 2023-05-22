@@ -27,14 +27,14 @@
   },
   "reward_params": {
 
-    "clips_play_speed": 1,
+    "clips_play_speed": 0.5,
     "clips_repeat_num": 3,
     
     "fwd_vel_cmd": 0.0,
-    "weight_velocity": 0.5,
+    "weight_velocity": 0.3,
     "sigma_velocity": 0.1,
 
-    "weight_height": 0.05,
+    "weight_height": 0.2,
     "sigma_height": 0.1,
 
     "weight_root_ori": 0.1,
@@ -55,7 +55,7 @@
     "weight_legs": 0.2,
     "sigma_legs": 0.1,
 
-    "weight_end_effectors": 0.1,
+    "weight_end_effectors": 0.2,
     "sigma_end_effectors": 0.1,
 
     "weight_early_penalty": 0.0
