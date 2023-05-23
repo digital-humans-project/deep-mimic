@@ -133,16 +133,15 @@ class Reward:
         self.fk.load_motion_clip_frame(motion_clips_frame)
         end_effectors_pos = self.fk.get_end_effectors_world_coordinates()
         x_pos = end_effectors_pos[:,0].copy()
-        z_pos = end_effectors_pos[:,2].copy()
-        end_effectors_pos[:,0] = -z_pos
         end_effectors_pos[:,2] = x_pos
+        end_effectors_pos[:,1] -= 0.07
 
         # ignore x axis diff
         diff_lf = end_effectors_pos[0,1:] - observation.lf[1:]
         diff_rf = end_effectors_pos[1,1:] - observation.rf[1:]
         diff_lh = end_effectors_pos[2,1:] - observation.lh[1:]
         diff_rh = end_effectors_pos[3,1:] - observation.rh[1:]
-        sum_diff_square = np.sum(np.square(diff_lf)) + np.sum(np.square(diff_rf)) \
+        sum_diff_square = 2*np.sum(np.square(diff_lf)) + 2*np.sum(np.square(diff_rf)) \
                         + np.sum(np.square(diff_lh)) + np.sum(np.square(diff_rh))
  
         weight_end_effectors = params.get("weight_joints_vel", 0)
