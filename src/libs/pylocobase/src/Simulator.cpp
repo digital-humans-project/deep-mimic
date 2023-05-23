@@ -172,6 +172,51 @@ crl::dVector Simulator::getQDot() const {
     return dq;
 }
 
+crl::dVector Simulator::getIkSolverQ(const crl::dVector &q_raw,
+                                    const crl::dVector &lf_pos,
+                                    const crl::dVector &rf_pos,
+                                    const crl::dVector &lh_pos,
+                                    const crl::dVector &rh_pos) const {
+    crl::loco::GCRR gcrr(robot_);
+    
+    const crl::dVector eePosTarget[4]{lf_pos,rf_pos,lh_pos,rh_pos};
+    crl::dVector q = q_raw, q_backup;
+    gcrr.getQ(q_backup); // store the initial q
+
+    for (uint i = 0; i < 10; i++) 
+    {
+        if(i > 0)
+            gcrr.getQ(q);
+            
+        crl::dVector deltaq(q.size() - 6);
+        deltaq.setZero();
+
+        crl::Matrix J, J_pusedo_inv;
+        crl::P3D target, eePos, p_FK;
+        std::shared_ptr<crl::loco::RB> rb;
+
+        for (int i = 0; i < robot_->getLimbCount(); i++) {
+            
+            eePos = robot_->getLimb(i)->ee->endEffectorOffset;
+            rb = (robot_->getLimb(i)->eeRB);
+            target = crl::getP3D(eePosTarget[i]);
+
+            gcrr.compute_dpdq(eePos, rb, J);
+            J = J.block(0,6,3,q.size() - 6).eval();
+
+            J_pusedo_inv = (J.transpose()*J).ldlt().solve(J.transpose());
+            p_FK = robot_->getLimb(i)->getEEWorldPos();
+            
+            deltaq += J_pusedo_inv*crl::V3D(p_FK,target);
+        } 
+        q.tail(q.size() - 6) += deltaq;
+        gcrr.setQ(q);
+    }
+    gcrr.setQ(q_backup);
+    return q;
+}
+
+
 crl::Matrix Simulator::getFeetPosition() const {
     crl::Matrix ret(robot_->getLimbCount(), 3);
     for (int i = 0; i < robot_->getLimbCount(); i++) {

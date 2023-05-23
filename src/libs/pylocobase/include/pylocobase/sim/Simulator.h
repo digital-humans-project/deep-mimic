@@ -115,6 +115,15 @@ public:
     crl::dVector getQDot() const;
 
     /**
+     * get Inverse Kinematic solver for speic end_effectors pos
+     */
+    crl::dVector getIkSolverQ(const crl::dVector &q_raw,  
+                                const crl::dVector &lf_pos,
+                                const crl::dVector &rf_pos,
+                                const crl::dVector &lh_pos,
+                                const crl::dVector &rh_pos) const;
+
+    /**
      * get nun_feet x 3 matrix which contains feet position
      */
     crl::Matrix getFeetPosition() const;
