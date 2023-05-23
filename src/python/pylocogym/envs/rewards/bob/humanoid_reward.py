@@ -51,7 +51,7 @@ class Reward:
 
         observation = ObservationData(observation_raw, num_joints, is_obs_fullstate)
 
-        action_dot, action_ddot = calc_derivatives(action_buffer, dt, num_joints)
+        # action_dot, action_ddot = calc_derivatives(action_buffer, dt, num_joints)
 
         
 
@@ -86,7 +86,7 @@ class Reward:
 
         N = num_joints
         N_mimic = len(self.mimic_joints_index)
-        set_other = set(range(N)) - self.mimic_joints_index # joints that have no corresponding in motion clips
+        # set_other = set(range(N)) - self.mimic_joints_index # joints that have no corresponding in motion clips
 
         # Unused joints smoothness reward
         # rest_joints_dot = action_dot[list(set_other)]
@@ -111,25 +111,25 @@ class Reward:
         joints_reward = weight_joints * np.exp(-np.sum(np.square(diff))/(2.0*N_mimic*sigma_joints**2))
 
         # Leg reawrd (waiting for the end effector reward to take the place of it)
-        leg_joints_angles = observation.joint_angles[[1,4,7,10,13,16,2,5,8,11,14,17]]
-        desired_leg_angles = motion_joints[[1,4,7,10,13,16,2,5,8,11,14,17]]
-        diff = leg_joints_angles - desired_leg_angles
-        weight_legs = params.get("weight_legs", 0)
-        sigma_legs = params.get("sigma_legs", 0)
-        leg_reward = weight_legs * np.exp(-np.sum(np.square(diff))/(2.0*12*sigma_legs**2))
+        # leg_joints_angles = observation.joint_angles[[1,4,7,10,13,16,2,5,8,11,14,17]]
+        # desired_leg_angles = motion_joints[[1,4,7,10,13,16,2,5,8,11,14,17]]
+        # diff = leg_joints_angles - desired_leg_angles
+        # weight_legs = params.get("weight_legs", 0)
+        # sigma_legs = params.get("sigma_legs", 0)
+        # leg_reward = weight_legs * np.exp(-np.sum(np.square(diff))/(2.0*12*sigma_legs**2))
 
         # End effector reward
         # ignore x axis diff
-        # diff_lf = end_effectors_pos[0,1:] - observation.lf[1:]
-        # diff_rf = end_effectors_pos[1,1:] - observation.rf[1:]
-        # diff_lh = end_effectors_pos[2,1:] - observation.lh[1:]
-        # diff_rh = end_effectors_pos[3,1:] - observation.rh[1:]
-        # sum_diff_square = 2*np.sum(np.square(diff_lf)) + 2*np.sum(np.square(diff_rf)) \
-        #                 + np.sum(np.square(diff_lh)) + np.sum(np.square(diff_rh))
+        diff_lf = end_effectors_pos[0] - observation.lf
+        diff_rf = end_effectors_pos[1] - observation.rf
+        diff_lh = end_effectors_pos[2] - observation.lh
+        diff_rh = end_effectors_pos[3] - observation.rh
+        sum_diff_square = np.sum(np.square(diff_lf)) + np.sum(np.square(diff_rf)) \
+                        + np.sum(np.square(diff_lh)) + np.sum(np.square(diff_rh))
  
-        # weight_end_effectors = params.get("weight_joints_vel", 0)
-        # sigma_end_effectors = params.get("sigma_joints_vel", 0)
-        # end_effectors_reward = weight_end_effectors * np.exp(-sum_diff_square/(2.0*4*sigma_end_effectors**2))
+        weight_end_effectors = params.get("weight_joints_vel", 0)
+        sigma_end_effectors = params.get("sigma_joints_vel", 0)
+        end_effectors_reward = weight_end_effectors * np.exp(-sum_diff_square/(2.0*4*sigma_end_effectors**2))
 
         # Joint velocities reward
         joint_velocities = observation.joint_vel[list(self.mimic_joints_index)]
@@ -151,7 +151,7 @@ class Reward:
                 + root_ori_reward   \
                 + joints_reward     \
                 + joints_vel_reward \
-                # + end_effectors_reward
+                + end_effectors_reward
 
         info = {
             "forward_vel_reward": forward_vel_reward,
@@ -166,9 +166,9 @@ class Reward:
 
             "joints_vel_reward": joints_vel_reward,
 
-            "leg_reward": leg_reward,
+            # "leg_reward": leg_reward,
 
-            # "end_effectors_reward": end_effectors_reward
+            "end_effectors_reward": end_effectors_reward
         }
 
         return reward, info
