@@ -19,22 +19,22 @@
     "robot_model": "Bob",
     "control_rate": 60.0,
     "simulation_rate": 120.0,
-    "motors_kp": 300.0,
+    "motors_kp": 800.0,
     "motors_kd": 50.0,
-    "max_torque": 50.0,
+    "max_torque": 200.0,
     "is_obs_fullstate": true,
     "use_random_command": false
   },
   "reward_params": {
 
-    "clips_play_speed": 0.5,
+    "clips_play_speed": 1,
     "clips_repeat_num": 3,
     
     "fwd_vel_cmd": 0.0,
-    "weight_velocity": 0.3,
-    "sigma_velocity": 0.1,
+    "weight_com": 0.1,
+    "sigma_com": 0.2,
 
-    "weight_height": 0.3,
+    "weight_height": 0.1,
     "sigma_height": 0.1,
 
     "weight_root_ori": 0.1,
@@ -46,13 +46,13 @@
     "sigma_smoothness2": 1.0,
     "weight_smoothness": 0.3,
 
-    "weight_joints": 0.2,
-    "sigma_joints": 0.15,
+    "weight_joints": 0.5,
+    "sigma_joints": 0.1,
 
     "weight_joints_vel": 0.05,
-    "sigma_joints_vel": 0.1,
+    "sigma_joints_vel": 0.45,
 
-    "weight_legs": 0.2,
+    "weight_legs": 0.3,
     "sigma_legs": 0.1,
 
     "weight_end_effectors": 0.5,
