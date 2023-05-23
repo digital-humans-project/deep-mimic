@@ -51,7 +51,7 @@ class VanillaEnv(PylocoEnv):
 
         self.reward_params = reward_params
         self.sum_episode_reward_terms = {}
-        self.action_buffer = np.zeros(self.num_joints * 3)  # history of actions [current, previous, past previous]
+        # self.action_buffer = np.zeros(self.num_joints * 3)  # history of actions [current, previous, past previous]
 
         self.rng = np.random.default_rng(env_params.get("seed", 1))  # create a local random number generator with seed
 
@@ -124,9 +124,9 @@ class VanillaEnv(PylocoEnv):
 
         observation = self.get_obs()
         self.sum_episode_reward_terms = {}
-        self.action_buffer = np.concatenate(
-            (self.joint_angle_default, self.joint_angle_default, self.joint_angle_default), axis=None
-        )
+        # self.action_buffer = np.concatenate(
+        #     (self.joint_angle_default, self.joint_angle_default, self.joint_angle_default), axis=None
+        # )
 
         info = {"msg": "===Episode Reset Done!===\n"}
         return (observation, info) if return_info else observation
@@ -145,13 +145,13 @@ class VanillaEnv(PylocoEnv):
 
         # update variables
         self.current_step += 1
-        self.action_buffer = np.roll(self.action_buffer, self.num_joints)  # moving action buffer
-        self.action_buffer[0 : self.num_joints] = action_applied
+        # self.action_buffer = np.roll(self.action_buffer, self.num_joints)  # moving action buffer
+        # self.action_buffer[0 : self.num_joints] = action_applied
 
 
         # Accelerate or decelerate motion clips, usually deceleration
         # (clips_play_speed < 1 nomarlly)
-        now_t = (observation[-2] - self.initial_time)*self.clips_play_speed + self.initial_time
+        now_t = (self._sim.get_time_stamp() - self.initial_time)*self.clips_play_speed + self.initial_time
         
         ''' Forwards and Inverse kinematics '''
         # Load retargeted data
@@ -184,7 +184,6 @@ class VanillaEnv(PylocoEnv):
         # compute reward
         reward, reward_info = self.reward_utils.compute_reward(
             observation,
-            self.action_buffer,
             self.is_obs_fullstate,
             sample_retarget,
             end_effectors_pos,
