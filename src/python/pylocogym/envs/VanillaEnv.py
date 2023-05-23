@@ -18,11 +18,14 @@ from pylocogym.data.deep_mimic_bob_adapter import (
     BobMotionDataFieldNames,
     DeepMimicMotionBobAdapter,
 )
-from pylocogym.data.deep_mimic_motion import DeepMimicMotion, DeepMimicMotionDataFieldNames
+from pylocogym.data.deep_mimic_motion import (
+    DeepMimicMotion,
+    DeepMimicMotionDataFieldNames,
+)
+from pylocogym.data.forward_kinematics import ForwardKinematics
 from pylocogym.data.lerp_dataset import LerpMotionDataset
 from pylocogym.data.loop_dataset import LoopKeyframeMotionDataset
 from pylocogym.envs.rewards.bob.humanoid_reward import Reward
-from pylocogym.data.forward_kinematics import ForwardKinematics
 
 
 class VanillaEnv(PylocoEnv):
@@ -93,22 +96,21 @@ class VanillaEnv(PylocoEnv):
 
         # Reward class
         self.reward_utils = Reward(
-            self.cnt_timestep_size, 
-            self.num_joints, 
-            self.dataset.mimic_joints_index, 
+            self.cnt_timestep_size,
+            self.num_joints,
+            self.dataset.mimic_joints_index,
             reward_params,
         )
 
         # Forwards Kinematics class
         self.fk = ForwardKinematics(env_params["urdf_path"])
 
-    def reset(self, seed=None, return_info=False, options=None, phase = None):
+    def reset(self, seed=None, return_info=False, options=None, phase=None):
         # super().reset(seed=seed)  # We need this line to seed self.np_random
         self.current_step = 0
         self.box_throwing_counter = 0
         self.lerp.reset()  # reset dataloader
-        self.motion_lerp.reset() # reset
-
+        self.motion_lerp.reset()  # reset
 
         # self.phase = self.sample_initial_state()
         if phase is None:
@@ -138,8 +140,15 @@ class VanillaEnv(PylocoEnv):
             self._sim.throw_box(self.box_throwing_counter % 3, self.box_throwing_strength, random_start_pos)
             self.box_throwing_counter += 1
 
+        # Accelerate or decelerate motion clips, usually deceleration
+        # (clips_play_speed < 1 nomarlly)
+        next_time = self._sim.get_time_stamp() + self.cnt_timestep_size
+        next_t = (next_time - self.initial_time) * self.clips_play_speed + self.initial_time
+        sample_retarget = self.lerp.eval(next_t)  # data after retargeting
+        assert sample_retarget is not None
+        
         # run simulation
-        action_applied = self.scale_action(action)
+        action_applied = self.scale_action(action) + sample_retarget.q_fields.joints
         self._sim.step(action_applied)
         observation = self.get_obs()
 
@@ -148,14 +157,12 @@ class VanillaEnv(PylocoEnv):
         self.action_buffer = np.roll(self.action_buffer, self.num_joints)  # moving action buffer
         self.action_buffer[0 : self.num_joints] = action_applied
 
+        now_time = self._sim.get_time_stamp()
+        now_t = (now_time - self.initial_time) * self.clips_play_speed + self.initial_time
+        assert abs(now_t - next_t) < 1e-10
 
-        # Accelerate or decelerate motion clips, usually deceleration
-        # (clips_play_speed < 1 nomarlly)
-        now_t = (observation[-2] - self.initial_time)*self.clips_play_speed + self.initial_time
-        
-        ''' Forwards and Inverse kinematics '''
+        """ Forwards and Inverse kinematics """
         # Load retargeted data
-        sample_retarget = self.lerp.eval(now_t) # data after retargeting
         # sample = self.motion_lerp.eval(now_t)  # original data for fk calculation
         # motion_clips_frame = np.concatenate([[0],sample.q])
         # self.fk.load_motion_clip_frame(motion_clips_frame)
@@ -165,7 +172,6 @@ class VanillaEnv(PylocoEnv):
         # end_effectors_pos[:,0] = -z_pos
         # end_effectors_pos[:,2] = x_pos
         # end_effectors_pos[:,1] -= 0.07
-        
 
         # data_joints = sample_retarget.q
         # q_desired = self._sim.get_ik_solver_q(data_joints,
@@ -173,12 +179,11 @@ class VanillaEnv(PylocoEnv):
         #                                       end_effectors_pos[1,:],
         #                                       end_effectors_pos[2,:],
         #                                       end_effectors_pos[3,:])
-        
+
         end_effectors_raw = self._sim.get_fk_ee_pos(sample_retarget.q)
-        end_effectors_pos = np.array([end_effectors_raw[0],
-                                      end_effectors_raw[2],
-                                      end_effectors_raw[1],
-                                      end_effectors_raw[3]])
+        end_effectors_pos = np.array(
+            [end_effectors_raw[0], end_effectors_raw[2], end_effectors_raw[1], end_effectors_raw[3]]
+        )
         # sample_retarget.q = q_desired
 
         # compute reward

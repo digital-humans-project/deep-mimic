@@ -8,16 +8,16 @@ class ObservationData:
         self.num_obs = len(observation_raw)
         self.num_additional_obs = self.num_obs - (num_joints * 2 + 9) + 3 * is_obs_fullstate
         self.is_fullstate = is_obs_fullstate
-        self.time_stamp = observation_raw[-2] # observation_raw[-2] = t, observation_raw[-1] = phase
+        # self.time_stamp = observation_raw[-2] # observation_raw[-2] = t, observation_raw[-1] = phase
 
         if is_obs_fullstate:
             """Fully observed observation convention:
-                    observation = [ global position, Euler angles, joint angles,
-                                    global velocity, angular velocity, joint velocity,
-                                    additional observation elements]
-                                    
-                    position convention: x = left, y = up, z = forward
-                    Euler angle convention: (yaw, pitch, roll)
+            observation = [ global position, Euler angles, joint angles,
+                            global velocity, angular velocity, joint velocity,
+                            additional observation elements]
+
+            position convention: x = left, y = up, z = forward
+            Euler angle convention: (yaw, pitch, roll)
             """
 
             # position:
@@ -33,18 +33,18 @@ class ObservationData:
             self.roll = observation_raw[5]
 
             # joint angles:
-            self.joint_angles = observation_raw[6:6 + num_joints]
+            self.joint_angles = observation_raw[6 : 6 + num_joints]
 
             # linear velocity:
-            self.vel = observation_raw[6 + num_joints:9 + num_joints]  # in global coordinates
-            rotation_to_local = Rotation.from_euler('yxz', -self.ori)
+            self.vel = observation_raw[6 + num_joints : 9 + num_joints]  # in global coordinates
+            rotation_to_local = Rotation.from_euler("yxz", -self.ori)
             self.local_vel = rotation_to_local.apply(self.vel)
 
             # angular velocity:
-            self.ang_vel = observation_raw[9 + num_joints:12 + num_joints]  # in global coordinates
+            self.ang_vel = observation_raw[9 + num_joints : 12 + num_joints]  # in global coordinates
 
             # joint velocity:
-            self.joint_vel = observation_raw[12 + num_joints:12 + 2 * num_joints]
+            self.joint_vel = observation_raw[12 + num_joints : 12 + 2 * num_joints]
 
             # end effectors:
             self.lf = observation_raw[-14:-11]
@@ -52,14 +52,14 @@ class ObservationData:
             self.lh = observation_raw[-8:-5]
             self.rh = observation_raw[-5:-2]
 
-            self.end_effectors = np.vstack((self.lf,self.rf,self.lh,self.rh))
+            self.end_effectors = np.vstack((self.lf, self.rf, self.lh, self.rh))
 
         else:
             """Partially observed observation convention:
-                   observation = [ base height (y), pitch, roll, joint angles,
-                                   local velocity, angular velocity, joint velocity,
-                                   additional observation elements]
-           """
+            observation = [ base height (y), pitch, roll, joint angles,
+                            local velocity, angular velocity, joint velocity,
+                            additional observation elements]
+            """
 
             # position:
             self.y = observation_raw[0]
@@ -69,43 +69,43 @@ class ObservationData:
             self.roll = observation_raw[2]
 
             # joint angles:
-            self.joint_angles = observation_raw[3:3 + num_joints]
+            self.joint_angles = observation_raw[3 : 3 + num_joints]
 
             # linear velocity:
-            self.local_vel = observation_raw[3 + num_joints: 6 + num_joints]  # in local coordinates
+            self.local_vel = observation_raw[3 + num_joints : 6 + num_joints]  # in local coordinates
 
             # angular velocity:
-            self.ang_vel = observation_raw[6 + num_joints:9 + num_joints]  # in local coordinates
+            self.ang_vel = observation_raw[6 + num_joints : 9 + num_joints]  # in local coordinates
 
             # joint velocity:
-            self.joint_vel = observation_raw[9 + num_joints:9 + 2 * num_joints]
+            self.joint_vel = observation_raw[9 + num_joints : 9 + 2 * num_joints]
 
         def print_obs():
             print(observation_raw)
 
 
 def calc_rms(signal_vector):
-    """ Given a vector of signals, returns a vector of RMS (Root Mean Squared) of signals"""
-    return np.sqrt(np.mean(signal_vector ** 2, axis=1))
+    """Given a vector of signals, returns a vector of RMS (Root Mean Squared) of signals"""
+    return np.sqrt(np.mean(signal_vector**2, axis=1))
 
 
 def calc_max_abs(signal_vector):
-    """ Given a vector of signals, returns a vector of the elements with max magnitude for each signal"""
+    """Given a vector of signals, returns a vector of the elements with max magnitude for each signal"""
     return np.absolute(signal_vector).max(1)
 
 
 def calc_rms_torque(torques, num_joints):
-    """ Given a vector of signals, returns a vector of RMS (Root Mean Squared) of signals"""
+    """Given a vector of signals, returns a vector of RMS (Root Mean Squared) of signals"""
     rms_torque = np.zeros(num_joints)
     num_sim_steps_per_loop = int(len(torques) / num_joints)
     for i in range(num_sim_steps_per_loop):
-        rms_torque += np.power(torques[i * num_joints:(i + 1) * num_joints], 2)
+        rms_torque += np.power(torques[i * num_joints : (i + 1) * num_joints], 2)
     rms_torque = np.sqrt(rms_torque / num_sim_steps_per_loop)
     return rms_torque
 
 
 def calc_max_mag_torque(torques, num_joints):
-    """ Given a vector of signals, returns a vector of the elements with max magnitude for each signal"""
+    """Given a vector of signals, returns a vector of the elements with max magnitude for each signal"""
     max_mag_torque = np.zeros(num_joints)
     num_sim_steps_per_loop = int(len(torques) / num_joints)
     for i in range(num_sim_steps_per_loop):
@@ -116,16 +116,16 @@ def calc_max_mag_torque(torques, num_joints):
 
 
 def tail(vector, segment_length):
-    return vector[len(vector) - segment_length:]
+    return vector[len(vector) - segment_length :]
 
 
 def calc_derivatives(buffer, dt, num_elements):
-    """ Calculate first and second derivative given history buffer.
+    """Calculate first and second derivative given history buffer.
     buffer = [current, previous, past]
     """
     current = buffer[0:num_elements]
-    past = buffer[num_elements:2 * num_elements]
-    past_past = buffer[num_elements * 2: 3 * num_elements]
+    past = buffer[num_elements : 2 * num_elements]
+    past_past = buffer[num_elements * 2 : 3 * num_elements]
     x_dot = (current - past) / dt
-    x_ddot = (current - 2 * past + past_past) / dt ** 2
+    x_ddot = (current - 2 * past + past_past) / dt**2
     return x_dot, x_ddot

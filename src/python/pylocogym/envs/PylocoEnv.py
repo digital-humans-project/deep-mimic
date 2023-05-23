@@ -1,7 +1,8 @@
+import importlib.util
 import sys
+
 import gym
 import numpy as np
-import importlib.util
 from gym import spaces
 from scipy.spatial.transform import Rotation
 
@@ -63,7 +64,7 @@ class PylocoEnv(gym.Env):
                 np.array([-20., 0., -20.]),  # lh pos 
                 np.array([-20., 0., -20.]),  # rh pos
 
-                np.float64(0.0),               # simulation_time
+                # np.float64(0.0),               # simulation_time
                 np.float64(0.0)                # motion phase
             ), axis=None)
 
@@ -80,7 +81,7 @@ class PylocoEnv(gym.Env):
                 np.array([20., 5., 20.]),  # lh pos 
                 np.array([20., 5., 20.]),  # rh pos
 
-                np.inf,                      # simulation_time
+                # np.inf,                      # simulation_time
                 np.float64(1.0)              # motion phase
             ), axis=None)
 
@@ -97,7 +98,7 @@ class PylocoEnv(gym.Env):
                 np.array([0., 0., 0.]),  # lh pos 
                 np.array([0., 0., 0.]),  # rh pos
 
-                np.float64(0.0),          # simulation_time
+                # np.float64(0.0),          # simulation_time
                 np.float64(0.0)           # motion phase
             ), axis=None)
 
@@ -115,7 +116,7 @@ class PylocoEnv(gym.Env):
                 np.array([-20., 0., -20.]),  # lh pos 
                 np.array([-20., 0., -20.]),  # rh pos
 
-                np.float64(0.0),          # simulation_time
+                # np.float64(0.0),          # simulation_time
                 np.float64(0.0)           # motion phase
             ), axis=None)
 
@@ -132,7 +133,7 @@ class PylocoEnv(gym.Env):
                 np.array([20., 5., 20.]),  # lh pos 
                 np.array([20., 5., 20.]),  # rh pos
 
-                np.inf,                      # simulation_time
+                # np.inf,                      # simulation_time
                 np.float64(1.0)              # motion phase
             ), axis=None)
 
@@ -149,7 +150,7 @@ class PylocoEnv(gym.Env):
                 np.array([0., 0., 0.]),  # lh pos 
                 np.array([0., 0., 0.]),  # rh pos
 
-                np.float64(0.0),          # simulation_time
+                # np.float64(0.0),          # simulation_time
                 np.float64(0.0)           # motion phase
             ), axis=None)
 
@@ -261,7 +262,7 @@ class PylocoEnv(gym.Env):
         now_time = self._sim.get_time_stamp()
         dt_actual = (now_time-self.initial_time)*self.clips_play_speed
         now_phase, _ = np.modf(self.phase + (dt_actual/self.dataset.duration))
-        obs = np.concatenate((obs, now_time,now_phase), axis=None)
+        obs = np.concatenate((obs, now_phase), axis=None)
 
         return obs
 

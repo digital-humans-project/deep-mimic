@@ -100,15 +100,15 @@ class Reward:
         # smoothness2_reward = weight_smoothness2 * np.exp(-np.sum(rest_joints_ddot**2)/(2.0*(N-N_mimic)*sigma_smoothness2**2))
 
 
-        motion_joints = sample_retarget.q_fields.joints
-        motion_joints_dot = sample_retarget.qdot_fields.joints
-        # Motion imitation reward 
-        joint_angles = observation.joint_angles[list(self.mimic_joints_index)]
-        desired_angles = motion_joints[list(self.mimic_joints_index)]
-        diff = joint_angles - desired_angles
-        weight_joints = params.get("weight_joints", 0)
-        sigma_joints = params.get("sigma_joints", 0)
-        joints_reward = weight_joints * np.exp(-np.sum(np.square(diff))/(2.0*N_mimic*sigma_joints**2))
+        # motion_joints = sample_retarget.q_fields.joints
+        # motion_joints_dot = sample_retarget.qdot_fields.joints
+        # # Motion imitation reward 
+        # joint_angles = observation.joint_angles[list(self.mimic_joints_index)]
+        # desired_angles = motion_joints[list(self.mimic_joints_index)]
+        # diff = joint_angles - desired_angles
+        # weight_joints = params.get("weight_joints", 0)
+        # sigma_joints = params.get("sigma_joints", 0)
+        # joints_reward = weight_joints * np.exp(-np.sum(np.square(diff))/(2.0*N_mimic*sigma_joints**2))
 
         # Leg reawrd (waiting for the end effector reward to take the place of it)
         # leg_joints_angles = observation.joint_angles[[1,4,7,10,13,16,2,5,8,11,14,17]]
@@ -132,12 +132,12 @@ class Reward:
         end_effectors_reward = weight_end_effectors * np.exp(-sum_diff_square/(2.0*4*sigma_end_effectors**2))
 
         # Joint velocities reward
-        joint_velocities = observation.joint_vel[list(self.mimic_joints_index)]
-        desired_velocities = motion_joints_dot[list(self.mimic_joints_index)]
-        diff = joint_velocities - desired_velocities
-        weight_joints_vel = params.get("weight_joints_vel", 0)
-        sigma_joints_vel = params.get("sigma_joints_vel", 0)
-        joints_vel_reward = weight_joints_vel * np.exp(-np.sum(np.square(diff))/(2.0*N_mimic*sigma_joints_vel**2))
+        # joint_velocities = observation.joint_vel[list(self.mimic_joints_index)]
+        # desired_velocities = motion_joints_dot[list(self.mimic_joints_index)]
+        # diff = joint_velocities - desired_velocities
+        # weight_joints_vel = params.get("weight_joints_vel", 0)
+        # sigma_joints_vel = params.get("sigma_joints_vel", 0)
+        # joints_vel_reward = weight_joints_vel * np.exp(-np.sum(np.square(diff))/(2.0*N_mimic*sigma_joints_vel**2))
 
         # =============
         # sum up rewards
@@ -149,8 +149,6 @@ class Reward:
                 + smoothness_reward \
                 + height_reward     \
                 + root_ori_reward   \
-                + joints_reward     \
-                + joints_vel_reward \
                 + end_effectors_reward
 
         info = {
@@ -162,9 +160,9 @@ class Reward:
             "smoothness2_reward": smoothness2_reward,
             "smoothness_reward": smoothness_reward,
 
-            "joints_reward": joints_reward,
+            # "joints_reward": joints_reward,
 
-            "joints_vel_reward": joints_vel_reward,
+            # "joints_vel_reward": joints_vel_reward,
 
             # "leg_reward": leg_reward,
 
