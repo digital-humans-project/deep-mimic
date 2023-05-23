@@ -165,7 +165,7 @@ class DeepMimicMotionBobAdapter(DeepMimicMotion):
         joints[10] = -l_knee
         joints[11] = -r_knee
 
-        if self.is_rescale_action is True:
+        if self.is_rescale_action:
             joints = self.rescale_action(joints)
         else:
             joints = np.minimum(np.maximum(joints, self.joint_angle_limit_low), self.joint_angle_limit_high)

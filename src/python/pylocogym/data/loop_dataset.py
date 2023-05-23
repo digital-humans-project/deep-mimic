@@ -26,21 +26,24 @@ class LoopKeyframeMotionDataset(IterableKeyframeMotionDataset):
         self.track_fields = track_fields
 
     def __iter__(self):
-        i = 0
+        loop = 0
         last_state = {k: 0 for k in self.track_fields}  # tracked fields
         t = 0
-        while self.num_loop < 0 or i < self.num_loop:
+        while self.num_loop < 0 or loop < self.num_loop:
+            first_kf = None
             last_kf = None  # track last keyframe
-            for kf in self.ds:
+            for i, kf in enumerate(self.ds):
                 kf.t0 += t
                 for k, v in last_state.items():
                     kf.q0_fields[k] += v
                     kf.q1_fields[k] += v
+                if i == 0:
+                    first_kf = kf
                 last_kf = kf
                 yield kf
             if last_kf is not None:
                 # update tracked fields state to be the end of the last keyframe
                 t = last_kf.t1
                 for k in self.track_fields:
-                    last_state[k] = last_kf.q1_fields[k]  # type: ignore
-            i += 1
+                    last_state[k] = last_kf.q1_fields[k] - first_kf.q0_fields[k]  # type: ignore
+            loop += 1
