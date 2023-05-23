@@ -139,8 +139,7 @@ class VanillaEnv(PylocoEnv):
             self.box_throwing_counter += 1
 
         # run simulation
-        # action_applied = self.scale_action(action)
-        action_applied = action
+        action_applied = self.scale_action(action)
         self._sim.step(action_applied)
         observation = self.get_obs()
 
