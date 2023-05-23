@@ -187,7 +187,7 @@ crl::dVector Simulator::getIkSolverQ(const crl::dVector &q_raw,
     {
         if(i > 0)
             gcrr.getQ(q);
-            
+
         crl::dVector deltaq(q.size() - 6);
         deltaq.setZero();
 
@@ -216,6 +216,25 @@ crl::dVector Simulator::getIkSolverQ(const crl::dVector &q_raw,
     return q;
 }
 
+
+std::vector<crl::dVector> Simulator::getFkEEPosQ(const crl::dVector &q_raw) const {
+    crl::loco::GCRR gcrr(robot_);
+    std::vector<crl::dVector> eePosTarget;
+    crl::dVector q_backup;
+    gcrr.getQ(q_backup); // store the initial q
+    gcrr.setQ(q_raw);
+    gcrr.syncRobotStateWithGeneralizedCoordinates();
+    crl::P3D  p_FK;
+
+    for (int i = 0; i < robot_->getLimbCount(); i++) 
+    {
+        p_FK = robot_->getLimb(i)->getEEWorldPos();
+        eePosTarget.push_back(crl::V3D(p_FK));
+    } 
+    gcrr.setQ(q_backup);
+    gcrr.syncRobotStateWithGeneralizedCoordinates();
+    return eePosTarget;
+}
 
 crl::Matrix Simulator::getFeetPosition() const {
     crl::Matrix ret(robot_->getLimbCount(), 3);

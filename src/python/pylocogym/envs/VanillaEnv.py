@@ -157,15 +157,15 @@ class VanillaEnv(PylocoEnv):
         ''' Forwards and Inverse kinematics '''
         # Load retargeted data
         sample_retarget = self.lerp.eval(now_t) # data after retargeting
-        sample = self.motion_lerp.eval(now_t)  # original data for fk calculation
-        motion_clips_frame = np.concatenate([[0],sample.q])
-        self.fk.load_motion_clip_frame(motion_clips_frame)
-        end_effectors_pos = self.fk.get_end_effectors_world_coordinates()
-        x_pos = end_effectors_pos[:,0].copy()
-        z_pos = end_effectors_pos[:,2].copy()
-        end_effectors_pos[:,0] = -z_pos
-        end_effectors_pos[:,2] = x_pos
-        end_effectors_pos[:,1] -= 0.07
+        # sample = self.motion_lerp.eval(now_t)  # original data for fk calculation
+        # motion_clips_frame = np.concatenate([[0],sample.q])
+        # self.fk.load_motion_clip_frame(motion_clips_frame)
+        # end_effectors_pos = self.fk.get_end_effectors_world_coordinates()
+        # x_pos = end_effectors_pos[:,0].copy()
+        # z_pos = end_effectors_pos[:,2].copy()
+        # end_effectors_pos[:,0] = -z_pos
+        # end_effectors_pos[:,2] = x_pos
+        # end_effectors_pos[:,1] -= 0.07
         
 
         # data_joints = sample_retarget.q
@@ -175,6 +175,11 @@ class VanillaEnv(PylocoEnv):
         #                                       end_effectors_pos[2,:],
         #                                       end_effectors_pos[3,:])
         
+        end_effectors_raw = self._sim.get_fk_ee_pos(sample_retarget.q)
+        end_effectors_pos = np.array([end_effectors_raw[0],
+                                      end_effectors_raw[2],
+                                      end_effectors_raw[1],
+                                      end_effectors_raw[3]])
         # sample_retarget.q = q_desired
 
         # compute reward

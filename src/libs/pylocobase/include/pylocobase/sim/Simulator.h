@@ -115,13 +115,18 @@ public:
     crl::dVector getQDot() const;
 
     /**
-     * get Inverse Kinematic solver for speic end_effectors pos
+     * get Inverse Kinematic solver for speicfic end_effectors pos
      */
     crl::dVector getIkSolverQ(const crl::dVector &q_raw,  
                                 const crl::dVector &lf_pos,
                                 const crl::dVector &rf_pos,
                                 const crl::dVector &lh_pos,
                                 const crl::dVector &rh_pos) const;
+    
+    /**
+     * get Forward Kinematic end effectors pos given specific q
+     */
+    std::vector<crl::dVector> getFkEEPosQ(const crl::dVector &q_raw) const;
 
     /**
      * get nun_feet x 3 matrix which contains feet position

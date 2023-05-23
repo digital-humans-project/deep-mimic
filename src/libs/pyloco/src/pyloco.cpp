@@ -38,6 +38,7 @@ PYBIND11_MODULE(pyloco, m) {  //Defining module
         .def("get_q", &Simulator::getQ)
         .def("get_qdot", &Simulator::getQDot)
         .def("get_ik_solver_q", &Simulator::getIkSolverQ)
+        .def("get_fk_ee_pos", &Simulator::getFkEEPosQ)
         .def("is_robot_collapsed", &Simulator::isRobotCollapsed)
         .def("get_feet_pos", &Simulator::getFeetPosition)
         .def("get_feet_vel", &Simulator::getFeetVelocity)
