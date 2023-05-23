@@ -107,7 +107,8 @@ class VanillaEnv(PylocoEnv):
         self.motion_lerp.reset() # reset
 
 
-        self.phase = self.sample_initial_state()
+        # self.phase = self.sample_initial_state()
+        self.phase = 0.0
         self.initial_time = self.phase * self.dataset.duration
 
         (q_reset, qdot_reset) = self.get_initial_state(self.initial_time, self.lerp)
