@@ -259,7 +259,8 @@ class PylocoEnv(gym.Env):
 
         # add simulation time
         now_time = self._sim.get_time_stamp()
-        now_phase, _ = np.modf(now_time/self.dataset.duration)
+        dt_actual = (now_time-self.initial_time)*self.clips_play_speed
+        now_phase, _ = np.modf(self.phase + (dt_actual/self.dataset.duration))
         obs = np.concatenate((obs, now_time,now_phase), axis=None)
 
         return obs
