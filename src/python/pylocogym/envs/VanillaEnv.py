@@ -22,6 +22,7 @@ from pylocogym.data.deep_mimic_motion import DeepMimicMotion, DeepMimicMotionDat
 from pylocogym.data.lerp_dataset import LerpMotionDataset
 from pylocogym.data.loop_dataset import LoopKeyframeMotionDataset
 from pylocogym.envs.rewards.bob.humanoid_reward import Reward
+from pylocogym.data.forward_kinematics import ForwardKinematics
 
 
 class VanillaEnv(PylocoEnv):
@@ -96,10 +97,12 @@ class VanillaEnv(PylocoEnv):
             self.num_joints, 
             self.dataset.mimic_joints_index, 
             reward_params,
-            env_params["urdf_path"]
         )
 
-    def reset(self, seed=None, return_info=False, options=None):
+        # Forwards Kinematics class
+        self.fk = ForwardKinematics(env_params["urdf_path"])
+
+    def reset(self, seed=None, return_info=False, options=None, phase = None):
         # super().reset(seed=seed)  # We need this line to seed self.np_random
         self.current_step = 0
         self.box_throwing_counter = 0
@@ -108,10 +111,14 @@ class VanillaEnv(PylocoEnv):
 
 
         # self.phase = self.sample_initial_state()
-        self.phase = 0.0
+        if phase is None:
+            self.phase = 0
+
+        else:
+            self.phase = phase
         self.initial_time = self.phase * self.dataset.duration
 
-        (q_reset, qdot_reset) = self.get_initial_state(self.initial_time, self.lerp)
+        (q_reset, qdot_reset) = self.get_initial_state(self.initial_time)
         self._sim.reset(q_reset, qdot_reset, self.initial_time)  # q, qdot include root's state(pos,ori,vel,angular vel)
         # self._sim.reset()
 
@@ -132,7 +139,8 @@ class VanillaEnv(PylocoEnv):
             self.box_throwing_counter += 1
 
         # run simulation
-        action_applied = self.scale_action(action)
+        # action_applied = self.scale_action(action)
+        action_applied = action
         self._sim.step(action_applied)
         observation = self.get_obs()
 
@@ -141,15 +149,41 @@ class VanillaEnv(PylocoEnv):
         self.action_buffer = np.roll(self.action_buffer, self.num_joints)  # moving action buffer
         self.action_buffer[0 : self.num_joints] = action_applied
 
+
+        # Accelerate or decelerate motion clips, usually deceleration
+        # (clips_play_speed < 1 nomarlly)
+        now_t = (observation[-2] - self.initial_time)*self.clips_play_speed + self.initial_time
+        
+        ''' Forwards and Inverse kinematics '''
+        # Load retargeted data
+        sample_retarget = self.lerp.eval(now_t) # data after retargeting
+        sample = self.motion_lerp.eval(now_t)  # original data for fk calculation
+        motion_clips_frame = np.concatenate([[0],sample.q])
+        self.fk.load_motion_clip_frame(motion_clips_frame)
+        end_effectors_pos = self.fk.get_end_effectors_world_coordinates()
+        x_pos = end_effectors_pos[:,0].copy()
+        z_pos = end_effectors_pos[:,2].copy()
+        end_effectors_pos[:,0] = -z_pos
+        end_effectors_pos[:,2] = x_pos
+        end_effectors_pos[:,1] -= 0.07
+        
+
+        # data_joints = sample_retarget.q
+        # q_desired = self._sim.get_ik_solver_q(data_joints,
+        #                                       end_effectors_pos[0,:],
+        #                                       end_effectors_pos[1,:],
+        #                                       end_effectors_pos[2,:],
+        #                                       end_effectors_pos[3,:])
+        
+        # sample_retarget.q = q_desired
+
         # compute reward
         reward, reward_info = self.reward_utils.compute_reward(
             observation,
             self.action_buffer,
             self.is_obs_fullstate,
-            self.lerp,
-            self.motion_lerp,
-            self.clips_play_speed,
-            self.initial_time
+            sample_retarget,
+            end_effectors_pos,
         )
 
         self.sum_episode_reward_terms = {

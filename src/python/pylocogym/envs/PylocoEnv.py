@@ -295,11 +295,30 @@ class PylocoEnv(gym.Env):
             self.joint_angle_limit_high)
         # return action * self.joint_scale_factors + (self.joint_angle_limit_low + self.joint_angle_limit_high) / 2
 
-    def get_initial_state(self, initial_time, dataloader):
+    def get_initial_state(self, initial_time):
         # Get desired root state, joint state according to phase
-        sample = dataloader.eval(initial_time)
-        q_reset = sample.q.copy()
-        qdot_reset = self.clips_play_speed*sample.qdot.copy()
+        now_t = initial_time
+
+        # Load retargeted data
+        sample_retarget = self.lerp.eval(now_t) # data after retargeting
+        # sample = self.motion_lerp.eval(now_t)  # original data for fk calculation
+        
+        # motion_clips_frame = np.concatenate([[0],sample.q])
+        # self.fk.load_motion_clip_frame(motion_clips_frame)
+        # end_effectors_pos = self.fk.get_end_effectors_world_coordinates()
+        # x_pos = end_effectors_pos[:,0].copy()
+        # end_effectors_pos[:,2] = x_pos
+        # end_effectors_pos[:,1] -= 0.07
+
+        # q_desired = self._sim.get_ik_solver_q(sample_retarget.q,
+        #                                       end_effectors_pos[0,:],
+        #                                       end_effectors_pos[1,:],
+        #                                       end_effectors_pos[2,:],
+        #                                       end_effectors_pos[3,:])
+        
+        q_reset = sample_retarget.q
+        qdot_reset = sample_retarget.qdot
+        # qdot_reset = np.zeros(len(self.joint_angle_default) + 6)
         
         # for debug useage
         # q_reset = np.zeros(len(self.joint_angle_default) + 6)
