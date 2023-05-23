@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
         # loading file
         urdf_file = "data/robots/deep-mimic/humanoid.urdf"
-        motion_clip_file = "humanoid3d_jump.txt"
+        motion_clip_file = "humanoid3d_walk.txt"
         motion_clip_file = os.path.join("data", "deepmimic", "motions", motion_clip_file)
 
         # train parameters
