@@ -25,7 +25,7 @@ public:
     bool showJointAxes = false;
     bool showJointLimits = false;
     bool showJointAngles = false;
-    bool showCollisionSpheres = false;
+    bool showCollisionSpheres = true;
     bool showEndEffectors = true;
     bool showMOI = false;
     bool showCoordFrame = true;

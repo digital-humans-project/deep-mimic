@@ -84,7 +84,7 @@ void RBRenderer::drawCollisionShapes(const std::shared_ptr<const RB> &rb, const 
     for (uint i = 0; i < rb->rbProps.collisionShapes.size(); i++) {
         if (const auto &cs = std::dynamic_pointer_cast<RRBCollisionSphere>(rb->rbProps.collisionShapes[i])) {
             P3D pos = rb->getWorldCoordinates(cs->localCoordinates);
-            drawSphere(pos, cs->radius, shader, rb->rbProps.colSphereDrawColor);
+            drawSphere(pos, 2*cs->radius, shader, rb->rbProps.colSphereDrawColor);
         }
 
         if (const auto &cb = std::dynamic_pointer_cast<RRBCollisionBox>(rb->rbProps.collisionShapes[i])) {
@@ -147,6 +147,7 @@ void RBRenderer::drawEndEffectors(const std::shared_ptr<const RB> &rb, const gui
         if(ee.name == "rHand" || ee.name == "lHand" || ee.name == "lFoot"||ee.name == "rFoot")
         {
             P3D pos = rb->getWorldCoordinates(ee.endEffectorOffset);
+            std::cout << rb->name << "||" << pos.x << "||"<<pos.y << "||"<<pos.z << std::endl;
             V3D color = ee.inContact ? rb->rbProps.contactedEndEffectorDrawColor : rb->rbProps.endEffectorDrawColor;
             drawSphere(pos, 3*rb->rbProps.endEffectorRadius, shader, color);
         }

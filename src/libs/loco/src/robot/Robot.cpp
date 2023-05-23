@@ -188,7 +188,10 @@ void Robot::draw(const gui::Shader &rbShader, float alpha) {
     // Then draw collsion spheres
     if (showCollisionSpheres)
         for (const auto &rb : rbList)
-            RBRenderer::drawCollisionShapes(rb, rbShader);
+        {
+            if(rb->name == "lFoot" || rb->name == "lToes")
+                RBRenderer::drawCollisionShapes(rb, rbShader);
+        }
 
     // Then draw end effectors
     if (showEndEffectors)
