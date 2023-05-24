@@ -100,7 +100,7 @@ class VanillaEnv(PylocoEnv):
         )
 
         # Forwards Kinematics class
-        self.fk = ForwardKinematics(env_params["urdf_path"])
+        # self.fk = ForwardKinematics(env_params["urdf_path"])
         self.minimum_height = 0.009
 
     def reset(self, seed=None, return_info=False, options=None, phase = None):
