@@ -264,7 +264,7 @@ class PylocoEnv(gym.Env):
         # add simulation time
         now_time = self._sim.get_time_stamp()
         dt_actual = (now_time-self.initial_time)*self.clips_play_speed
-        now_phase, _ = np.modf(self.phase + (dt_actual/self.dataset.duration))
+        now_phase, _ = np.modf(self.phase + (dt_actual/self.motion.duration))
         obs = np.concatenate((obs, now_phase), axis=None)
 
         return obs
@@ -305,7 +305,11 @@ class PylocoEnv(gym.Env):
         now_t = initial_time
 
         # Load retargeted data
-        sample_retarget = self.lerp.eval(now_t) # data after retargeting
+        res = self.lerp.eval(now_t)
+        assert res is not None
+        sample, kf = res
+        sample_retarget = self.adapter.adapt(sample, kf)  # type: ignore # data after retargeting
+        
         # sample = self.motion_lerp.eval(now_t)  # original data for fk calculation
         
         # motion_clips_frame = np.concatenate([[0],sample.q])
