@@ -35,8 +35,8 @@ class LoopKeyframeMotionDataset(IterableKeyframeMotionDataset):
             for i, kf in enumerate(self.ds):
                 kf.t0 += t
                 for k, v in last_state.items():
-                    kf.q0_fields[k] += v
-                    kf.q1_fields[k] += v
+                    kf.q0_fields[k] += v * loop
+                    kf.q1_fields[k] += v * loop
                 if i == 0:
                     first_kf = kf
                 last_kf = kf
