@@ -26,7 +26,7 @@ from pylocogym.envs.rewards.bob.humanoid_reward import Reward
 
 
 class VanillaEnv(PylocoEnv):
-    def __init__(self, max_episode_steps, env_params, reward_params):
+    def __init__(self, max_episode_steps, env_params, reward_params, enable_rand_init=True):
         sim_dt = 1.0 / env_params["simulation_rate"]
         con_dt = 1.0 / env_params["control_rate"]
 
@@ -39,6 +39,8 @@ class VanillaEnv(PylocoEnv):
 
         loadVisuals = False
         super().__init__(pyloco.VanillaSimulator(sim_dt, con_dt, robot_id, loadVisuals), env_params, max_episode_steps)
+
+        self.enable_rand_init = enable_rand_init
 
         self._sim.lock_selected_joints = env_params.get("lock_selected_joints", False)
         self.enable_box_throwing = env_params.get("enable_box_throwing", False)
@@ -116,14 +118,14 @@ class VanillaEnv(PylocoEnv):
         # self.fk = ForwardKinematics(env_params["urdf_path"])
         self.minimum_height = 0.009
 
-    def reset(self, seed=None, return_info=False, options=None, phase=None):
+    def reset(self, seed=None, return_info=False, options=None, phase=0):
         # super().reset(seed=seed)  # We need this line to seed self.np_random
         self.current_step = 0
         self.box_throwing_counter = 0
         self.lerp.reset()  # reset dataloader
 
         # self.phase = self.sample_initial_state()
-        if phase is None:
+        if self.enable_rand_init:
             self.phase = self.sample_initial_state()
 
         else:

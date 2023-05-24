@@ -106,7 +106,7 @@ def train(params,
         env_id,
         n_envs=1,
         seed=seed,
-        env_kwargs=env_kwargs,
+        env_kwargs={**env_kwargs, "enable_rand_init": False},
         vec_env_cls=DummyVecEnv,
     )
 
