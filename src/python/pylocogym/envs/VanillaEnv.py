@@ -148,7 +148,8 @@ class VanillaEnv(PylocoEnv):
         assert sample_retarget is not None
         
         # run simulation
-        action_applied = self.scale_action(action) + sample_retarget.q_fields.joints
+        target_act = action * np.pi + sample_retarget.q_fields.joints
+        action_applied = np.clip(target_act, self.joint_angle_limit_low, self.joint_angle_limit_high)
         self._sim.step(action_applied)
         observation = self.get_obs()
 
