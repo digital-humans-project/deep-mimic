@@ -103,10 +103,6 @@ class VanillaEnv(PylocoEnv):
             # initial_pose=self.initial_pose,
         )
 
-        # Maximum episdode step
-        self.max_episode_steps = (
-            self.clips_repeat_num * (int(self.motion.duration / self.cnt_timestep_size) - 1) / self.clips_play_speed
-        )
 
         # Reward class
         self.reward_utils = Reward(
@@ -132,10 +128,18 @@ class VanillaEnv(PylocoEnv):
 
         else:
             self.phase = phase
-        self.initial_time = self.phase * self.motion.duration
+        self.initial_time = self.phase * self.motion.duration # data scale
+
+        total_duration = self.clips_repeat_num * self.motion.duration # data
+        data_duration = total_duration - self.initial_time
+        sim_duration = data_duration / self.clips_play_speed
+
+
+        # Maximum episdode step
+        self.max_episode_steps = int(sim_duration / self.cnt_timestep_size)
 
         (q_reset, qdot_reset) = self.get_initial_state(self.initial_time)
-        self._sim.reset(q_reset, qdot_reset, self.initial_time)  # q, qdot include root's state(pos,ori,vel,angular vel)
+        self._sim.reset(q_reset, qdot_reset, self.initial_time / self.clips_play_speed)  # q, qdot include root's state(pos,ori,vel,angular vel)
         # self._sim.reset()
 
         observation = self.get_obs()
@@ -166,7 +170,7 @@ class VanillaEnv(PylocoEnv):
 
         # Accelerate or decelerate motion clips, usually deceleration
         # (clips_play_speed < 1 nomarlly)
-        now_t = (self._sim.get_time_stamp() - self.initial_time) * self.clips_play_speed + self.initial_time
+        now_t = self._sim.get_time_stamp() * self.clips_play_speed
 
         """ Forwards and Inverse kinematics """
         # Load retargeted data

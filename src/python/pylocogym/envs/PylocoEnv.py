@@ -196,7 +196,7 @@ class PylocoEnv(gym.Env):
             terminated = True
             truncated = False
 
-        elif self.current_step > self.max_episode_steps:
+        elif self.current_step >= self.max_episode_steps:
             term_info = "reached max episode steps!"
             terminated = False
             truncated = True
@@ -263,8 +263,8 @@ class PylocoEnv(gym.Env):
 
         # add simulation time
         now_time = self._sim.get_time_stamp()
-        dt_actual = (now_time-self.initial_time)*self.clips_play_speed
-        now_phase, _ = np.modf(self.phase + (dt_actual/self.motion.duration))
+        data_time = now_time * self.clips_play_speed
+        now_phase, _ = np.modf(data_time/self.motion.duration)
         obs = np.concatenate((obs, now_phase), axis=None)
 
         return obs
