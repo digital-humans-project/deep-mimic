@@ -43,7 +43,7 @@ def train(params,
     model_params = params['model_params']
     reward_params = params['reward_params']
 
-    n_envs = 1
+    n_envs = hyp_params['num_envs'] if (not debug) else 1
     max_episode_steps = hyp_params.get('max_episode_steps', 500)
     max_evaluation_steps = hyp_params.get('max_evaluation_steps', 500)
     seed = hyp_params.get("seed", 313)
