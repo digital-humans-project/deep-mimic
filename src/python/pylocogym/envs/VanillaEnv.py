@@ -22,7 +22,6 @@ from pylocogym.data.deep_mimic_motion import DeepMimicMotion, DeepMimicMotionDat
 from pylocogym.data.lerp_dataset import LerpMotionDataset
 from pylocogym.data.loop_dataset import LoopKeyframeMotionDataset
 from pylocogym.envs.rewards.bob.humanoid_reward import Reward
-from pylocogym.data.forward_kinematics import ForwardKinematics
 
 
 class VanillaEnv(PylocoEnv):
@@ -157,17 +156,6 @@ class VanillaEnv(PylocoEnv):
         ''' Forwards and Inverse kinematics '''
         # Load retargeted data
         sample_retarget = self.lerp.eval(now_t) # data after retargeting
-        # sample = self.motion_lerp.eval(now_t)  # original data for fk calculation
-        # motion_clips_frame = np.concatenate([[0],sample.q])
-        # self.fk.load_motion_clip_frame(motion_clips_frame)
-        # end_effectors_pos = self.fk.get_end_effectors_world_coordinates()
-        # x_pos = end_effectors_pos[:,0].copy()
-        # z_pos = end_effectors_pos[:,2].copy()
-        # end_effectors_pos[:,0] = -z_pos
-        # end_effectors_pos[:,2] = x_pos
-        # end_effectors_pos[:,1] -= 0.07
-        
-
         # data_joints = sample_retarget.q
         # q_desired = self._sim.get_ik_solver_q(data_joints,
         #                                       end_effectors_pos[0,:],

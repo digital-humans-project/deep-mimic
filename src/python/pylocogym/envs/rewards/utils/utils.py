@@ -27,10 +27,14 @@ class ObservationData:
             self.z = observation_raw[2]
 
             # orientation:
-            self.ori = observation_raw[3:6]  # Euler angles (yaw, pitch, roll)
-            self.yaw = observation_raw[3]
-            self.pitch = observation_raw[4]
-            self.roll = observation_raw[5]
+            # self.ori = observation_raw[3:6]  # Euler angles (yaw, pitch, roll)
+            # self.yaw = observation_raw[3]
+            # self.pitch = observation_raw[4]
+            # self.roll = observation_raw[5]
+            self.ori_x = observation_raw[3]
+            self.ori_y = observation_raw[4]
+            self.ori_z = observation_raw[5]
+            self.ori_w = np.sqrt(1 - np.sum(np.square(observation_raw[3:6])))
 
             # joint angles:
             self.joint_angles = observation_raw[6:6 + num_joints]

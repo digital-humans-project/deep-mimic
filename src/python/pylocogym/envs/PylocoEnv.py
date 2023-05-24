@@ -52,7 +52,7 @@ class PylocoEnv(gym.Env):
         if self.is_obs_fullstate:
             self.observation_low = np.concatenate((
                 np.array([-20., 0., -20.]),  # base position: x = left, y = up, z = forward
-                np.array([-np.pi, -np.pi, -np.pi]),  # base orientation (yaw, pitch, roll)
+                np.array([-1, -1, -1]),  # base orientation quaternion (x, y, z, (w))
                 self.joint_angle_limit_low - 0.1 * np.ones(self.num_joints),  # joint position
                 np.array([-50., -50., -50.]),  # base linear velocity
                 np.array([-50., -50., -50.]),  # base angular velocity
@@ -69,7 +69,7 @@ class PylocoEnv(gym.Env):
 
             self.observation_high = np.concatenate((
                 np.array([20., 5., 20.]),  # base position: x = left, y = up, z = forward
-                np.array([np.pi, np.pi, np.pi]),  # base orientation (yaw, pitch, roll)
+                np.array([1, 1, 1]),  # base orientation quaternion (x, y, z, (w))
                 self.joint_angle_limit_high + 0.1 * np.ones(self.num_joints),  # joint position
                 np.array([50., 50., 50.]),  # base linear velocity
                 np.array([50., 50., 50.]),  # base angular velocity
@@ -86,7 +86,7 @@ class PylocoEnv(gym.Env):
 
             self.default_obs = np.concatenate((
                 np.array([0., self.base_height_default, 0.]),  # base position: x = left, y = up, z = forward
-                np.array([0., 0., 0.]),  # base orientation (yaw, pitch, roll)
+                np.array([0., 0., 0.]),  # base orientation quaternion (x, y, z, (w))
                 self.joint_angle_default,  # joint position
                 np.array([0., 0., 0.]),  # base linear velocity
                 np.array([0., 0., 0.]),  # base angular velocity
@@ -244,6 +244,10 @@ class PylocoEnv(gym.Env):
         q = self._sim.get_q()
         qdot = self._sim.get_qdot()
         if self.is_obs_fullstate:
+            ori = self._sim.get_root_ori()
+            # we only store the x y z from [x,y,z,w], 
+            # when we need that w, just use x^2+y^2+z^2+w^2 = 1
+            q[3:6] = ori[0:3] 
             obs = np.concatenate((q, qdot), axis=None)
         else:
             obs = self.get_reduced_obs(q, qdot)
