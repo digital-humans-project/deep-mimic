@@ -66,5 +66,4 @@ if __name__ == "__main__":
             wandb_log=args.wandb,
             config_path=config_path,
             motion_clips_path=motion_clip_file,
-            urdf_path=urdf_file
         )
