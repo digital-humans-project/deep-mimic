@@ -327,6 +327,7 @@ class PylocoEnv(gym.Env):
         
         q_reset = sample_retarget.q
         qdot_reset = sample_retarget.qdot
+        qdot_reset = qdot_reset * self.clips_play_speed
         # qdot_reset = np.zeros(len(self.joint_angle_default) + 6)
         
         # for debug useage
