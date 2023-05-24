@@ -4,7 +4,7 @@
     "learning_rate": 3e-4,
     "batch_size": 256,
     "n_epochs": 10,
-    "num_envs": 16,
+    "num_envs": 32,
     "n_steps": 4096,
     "vf_coef": 0.5,
     "time_steps": 45e6,
@@ -38,7 +38,7 @@
     "sigma_height": 0.1,
 
     "weight_root_ori": 0.1,
-    "sigma_root_ori": 0.1,
+    "sigma_root_ori": 0.05,
 
     "weight_smoothness1": 1.0e-2,
     "sigma_smoothness1": 2.0,
