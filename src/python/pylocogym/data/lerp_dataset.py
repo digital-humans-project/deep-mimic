@@ -10,7 +10,6 @@ except ImportError:
         return zip(a, b)
 
 
-from enum import Enum, StrEnum
 from typing import List, Optional, Tuple
 
 import numpy as np
@@ -100,6 +99,18 @@ def quaternion_slerp(
     return q0
 
 
+def alerp(a, b, alpha, shortest_path=True):
+    """
+    Angular linear interpolation between two angles `a` and `b` with weight `alpha`.
+    """
+    if shortest_path:
+        pi2 = 2 * np.pi
+        da = (b - a) % pi2
+        return a + alpha * (2 * da % pi2 - da)
+    else:
+        return a + alpha * (b - a)
+
+
 class LerpMotionDataset(ContinuousMotionDataset):
     """
     `LerpMotionDataset` is a wrapper around `IterableKeyframeMotionDataset` that
@@ -109,15 +120,19 @@ class LerpMotionDataset(ContinuousMotionDataset):
     def __init__(
         self,
         kf_dataset: IterableKeyframeMotionDataset,
-        lerp_fields: List[StrEnum] = [],
-        slerp_fields: List[StrEnum] = [],
+        lerp_fields: List[str] = [],
+        alerp_fields: List[str] = [],
+        slerp_fields: List[str] = [],
+        alerp_shortest_path: bool = True,
         slerp_spin: int = 0,
         slerp_shortest_path: bool = True,
     ) -> None:
         super().__init__(kf_dataset)
         self.lerp_fields = lerp_fields
+        self.alerp_fields = alerp_fields
         self.slerp_fields = slerp_fields
         self.kf_dataset = kf_dataset
+        self.alerp_shortest_path = alerp_shortest_path
         self.slerp_spin = slerp_spin
         self.slerp_shortest_path = slerp_shortest_path
         self.reset()
@@ -141,6 +156,13 @@ class LerpMotionDataset(ContinuousMotionDataset):
         sample = self.kf_dataset.SampleType.BaseSampleType(t, kf.q0, kf.qdot, phase)
         for field in self.lerp_fields:
             sample.q_fields[field] = lerp(kf.q0_fields[field], kf.q1_fields[field], alpha)
+        for field in self.alerp_fields:
+            sample.q_fields[field] = alerp(
+                kf.q0_fields[field],
+                kf.q1_fields[field],
+                alpha,
+                shortest_path=self.alerp_shortest_path,
+            )
         for field in self.slerp_fields:
             sample.q_fields[field] = quaternion_slerp(
                 kf.q0_fields[field],
