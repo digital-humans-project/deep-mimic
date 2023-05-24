@@ -47,10 +47,10 @@ class ObservationData:
             self.joint_vel = observation_raw[12 + num_joints:12 + 2 * num_joints]
 
             # end effectors:
-            self.lf = observation_raw[-14:-11]
-            self.rf = observation_raw[-11:-8]
-            self.lh = observation_raw[-8:-5]
-            self.rh = observation_raw[-5:-2]
+            self.lf = observation_raw[-13:-10]
+            self.rf = observation_raw[-10:-7]
+            self.lh = observation_raw[-7:-4]
+            self.rh = observation_raw[-4:-1]
 
             self.end_effectors = np.vstack((self.lf,self.rf,self.lh,self.rh))
 
