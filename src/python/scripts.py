@@ -13,7 +13,7 @@ from stable_baselines3 import PPO
 
 
 def manage_save_path(log_dir, name):
-    date = datetime.date.today().strftime("%Y-%m-%d-")
+    date = datetime.date.today().strftime("%Y-%m-%d-%H-%M-%S-")
     name = date + name
     latest_run_id = utils.get_latest_run_id(log_dir, name)
     save_path = utils.os.path.join(log_dir, f"{name}_{latest_run_id + 1}")
