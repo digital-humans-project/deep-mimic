@@ -44,26 +44,13 @@ if __name__ == "__main__":
         with open(config_path, 'r') as f:
             params = json.load(f)
 
-        # loading file
-        urdf_file = "data/robots/deep-mimic/humanoid.urdf"
-        motion_clip_file = "humanoid3d_walk.txt"
-        motion_clip_file = os.path.join("data", "deepmimic", "motions", motion_clip_file)
-
-        # train parameters
-        hyp_params = params['train_hyp_params']
-        steps = hyp_params['time_steps']
-        dir_name = "{id}-{clips}-{steps:.1f}M".format(id=params['env_id'], clips=motion_clip_file, steps=float(steps / 1e6))
-
-
-
+        
         # training
         scripts.train(
             params=params,
             log_path=log_path,
-            dir_name=dir_name,
             debug=args.debug,
             video_recorder=args.videoRecorder,
             wandb_log=args.wandb,
             config_path=config_path,
-            motion_clips_path=motion_clip_file,
         )
