@@ -9,3 +9,6 @@ pip install -r requirements.txt
 
 # patch wandb to fix the incompatible version of gym
 patch venv/lib64/python3.9/site-packages/wandb/integration/gym/__init__.py patch_wandb_0_15_3_gym_0_21_0.patch
+
+cmake -DPython_EXECUTABLE=$(which python) -DCMAKE_BUILD_TYPE=Release -B build
+cmake --build build
