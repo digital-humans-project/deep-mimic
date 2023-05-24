@@ -101,6 +101,7 @@ class VanillaEnv(PylocoEnv):
 
         # Forwards Kinematics class
         self.fk = ForwardKinematics(env_params["urdf_path"])
+        self.minimum_height = 0.009
 
     def reset(self, seed=None, return_info=False, options=None, phase = None):
         # super().reset(seed=seed)  # We need this line to seed self.np_random
@@ -119,8 +120,8 @@ class VanillaEnv(PylocoEnv):
         self.initial_time = self.phase * self.dataset.duration
 
         (q_reset, qdot_reset) = self.get_initial_state(self.initial_time)
-        self._sim.reset(q_reset, qdot_reset, self.initial_time)  # q, qdot include root's state(pos,ori,vel,angular vel)
-        # self._sim.reset()
+        # self._sim.reset(q_reset, qdot_reset, self.initial_time)  # q, qdot include root's state(pos,ori,vel,angular vel)
+        self._sim.reset()
 
         observation = self.get_obs()
         self.sum_episode_reward_terms = {}
@@ -179,6 +180,9 @@ class VanillaEnv(PylocoEnv):
                                       end_effectors_raw[2],
                                       end_effectors_raw[1],
                                       end_effectors_raw[3]])
+        for each_pos in end_effectors_pos:
+            if each_pos[1] < self.minimum_height:
+                each_pos[1] = self.minimum_height
         # sample_retarget.q = q_desired
 
         # compute reward
