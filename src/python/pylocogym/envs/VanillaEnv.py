@@ -120,8 +120,8 @@ class VanillaEnv(PylocoEnv):
         self.initial_time = self.phase * self.dataset.duration
 
         (q_reset, qdot_reset) = self.get_initial_state(self.initial_time)
-        # self._sim.reset(q_reset, qdot_reset, self.initial_time)  # q, qdot include root's state(pos,ori,vel,angular vel)
-        self._sim.reset()
+        self._sim.reset(q_reset, qdot_reset, self.initial_time)  # q, qdot include root's state(pos,ori,vel,angular vel)
+        # self._sim.reset()
 
         observation = self.get_obs()
         self.sum_episode_reward_terms = {}
