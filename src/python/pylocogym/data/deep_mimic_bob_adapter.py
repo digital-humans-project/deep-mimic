@@ -174,9 +174,18 @@ class DeepMimicMotionBobAdapter(DeepMimicMotion):
         j = self.retarget_joint_angle(sample.q)
         root_rot = self.retarget_base_orientation(sample.q)
         root_pos = self.retarget_base_pos(sample.q)
-        root_ang_vel = angular_velocities(kf.q0_fields.root_rot, kf.q1_fields.root_rot, kf.dt)
         q = np.concatenate([root_pos, root_rot, j])
-        qdot = (kf.q1 - kf.q0) / kf.dt
+
+        j0 = self.retarget_joint_angle(kf.q0)
+        j1 = self.retarget_joint_angle(kf.q1)
+        root_rot_0 = self.retarget_base_orientation(kf.q0)
+        root_rot_1 = self.retarget_base_orientation(kf.q1)
+        root_pos_0 = self.retarget_base_pos(kf.q0)
+        root_pos_1 = self.retarget_base_pos(kf.q1)
+        q0 = np.concatenate([root_pos_0, root_rot_0, j0])
+        q1 = np.concatenate([root_pos_1, root_rot_1, j1])
+        qdot = (q1 - q0) / kf.dt
+        root_ang_vel = angular_velocities(kf.q0_fields.root_rot, kf.q1_fields.root_rot, kf.dt)
         # our's y axis == motion's y axis
         # our's x axis == -1 * motion's z axis
         # our's z axis == motion's x axis
