@@ -113,6 +113,11 @@ public:
      * get generalized velocity of robot configuration
      */
     crl::dVector getQDot() const;
+    
+    /**
+     * get generalized quaternion of robot root orientation
+     */
+    crl::dVector getRootOrientation() const;
 
     /**
      * get Inverse Kinematic solver for speicfic end_effectors pos
