@@ -290,6 +290,7 @@ class PylocoEnv(gym.Env):
 
     def scale_action(self, action):
         # the action space now doesn't fill the joint limits due to asymmetry
+
         return np.minimum(
             np.maximum(action * self.joint_scale_factors + self.joint_angle_default, self.joint_angle_limit_low),
             self.joint_angle_limit_high)
@@ -332,18 +333,8 @@ class PylocoEnv(gym.Env):
 
     def sample_initial_state(self):
         # Random sample phase from [0,1)
-        seed = np.random.random_sample()
-        # self.phase = np.abs(np.random.normal(loc=0.0, scale=0.2, size=None))
-        # self.phase, _ = np.modf(self.phase)
-        if seed < 0.7:
-            return 0
-        if seed < 0.8:
-            return 0.2
-        if seed < 0.9:
-            return 0.4
-        if seed < 0.95:
-            return 0.6
-        return 0.8
+        phase, _ = np.modf(np.random.gamma(1,3)/10.0)
+        return phase
 
     def get_feet_status(self):
         status = FeetStatus()

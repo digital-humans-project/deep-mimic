@@ -113,7 +113,7 @@ class VanillaEnv(PylocoEnv):
 
         # self.phase = self.sample_initial_state()
         if phase is None:
-            self.phase = 0
+            self.phase = self.sample_initial_state()
 
         else:
             self.phase = phase
