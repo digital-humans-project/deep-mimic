@@ -25,7 +25,6 @@ class Reward:
 
     def compute_reward(self, 
                        observation_raw, 
-                       action_buffer, 
                        is_obs_fullstate,
                        sample_retarget,
                        end_effectors_pos):
