@@ -65,7 +65,8 @@ class Reward:
         diff = np.linalg.norm(desired_base_pos_xz - now_base_xz)
         sigma_com = params.get("sigma_com", 0)
         weight_com = params.get("weight_com", 0)
-        forward_vel_reward = weight_com * np.exp(-diff**2/(2.0*sigma_com**2))
+        com_reward = weight_com * np.exp(-diff**2/(2.0*sigma_com**2))
+        com_err = diff
 
         # Root height reward
         height = observation.y
@@ -74,14 +75,16 @@ class Reward:
         sigma_height = params.get("sigma_height", 0)
         weight_height = params.get("weight_height", 0)
         height_reward = weight_height * np.exp(-diff_squere/(2.0*sigma_height**2))
+        height_err = height - desired_height
 
         # Root orientation reward
         R = Rotation.from_euler('YXZ',sample_retarget.q_fields.root_rot)
         desired_ori = R.as_quat()
-        diff_squere = (observation.ori_q - desired_ori)**2
+        diff_squere = np.sum((observation.ori_q - desired_ori)**2)
         weight_root_ori = params.get("weight_root_ori", 0)
         sigma_root_ori = params.get("sigma_root_ori", 0)
-        root_ori_reward = weight_root_ori * np.exp(-np.sum(diff_squere)/(sigma_root_ori**2))
+        root_ori_reward = weight_root_ori * np.exp(-diff_squere/(sigma_root_ori**2))
+        root_ori_err = diff_squere
 
         N = num_joints
         N_mimic = len(self.mimic_joints_index)
@@ -129,6 +132,7 @@ class Reward:
         weight_end_effectors = params.get("weight_joints_vel", 0)
         sigma_end_effectors = params.get("sigma_joints_vel", 0)
         end_effectors_reward = weight_end_effectors * np.exp(-sum_diff_square/(2.0*4*sigma_end_effectors**2))
+        end_effectors_err = sum_diff_square
 
         # Joint velocities reward
         # joint_velocities = observation.joint_vel[list(self.mimic_joints_index)]
@@ -144,14 +148,14 @@ class Reward:
         smoothness1_reward = 0
         smoothness2_reward = 0
         smoothness_reward = params.get("weight_smoothness", 0) * (smoothness1_reward + smoothness2_reward)
-        reward = forward_vel_reward \
+        reward = com_reward \
                 + smoothness_reward \
                 + height_reward     \
                 + root_ori_reward   \
                 + end_effectors_reward
 
         info = {
-            "forward_vel_reward": forward_vel_reward,
+            "com_reward": com_reward,
             "height_reward": height_reward,
             "root_ori_reward": root_ori_reward,
 
@@ -168,7 +172,16 @@ class Reward:
             "end_effectors_reward": end_effectors_reward
         }
 
-        return reward, info
+        err = {
+            "com_err": com_err,
+            "height_err": height_err,
+            "root_ori_err": root_ori_err,
+            "joints_err": joints_err,
+            "end_effectors_err": end_effectors_err,
+            "joints_vel_err": joints_vel_err
+        }
+
+        return reward, info, err
 
 
     def punishment(self, current_step, max_episode_steps):  # punishment for early termination

@@ -199,3 +199,4 @@ __pycache__
 # notebook
 notebook/
 .ipynb_checkpoints
+model_data/

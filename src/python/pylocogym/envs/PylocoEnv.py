@@ -343,8 +343,7 @@ class PylocoEnv(gym.Env):
 
     def sample_initial_state(self):
         # Random sample phase from [0,1)
-        phase, _ = np.modf(np.random.gamma(1,3)/10.0)
-        return phase
+        return np.random.rand()
 
     def get_feet_status(self):
         status = FeetStatus()
