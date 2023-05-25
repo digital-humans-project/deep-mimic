@@ -28,7 +28,8 @@ class Reward:
                        observation_raw, 
                        is_obs_fullstate,
                        sample_retarget,
-                       end_effectors_pos):
+                       end_effectors_pos,
+                       action):
         """
         Compute the reward based on observation (Vanilla Environment).
 
@@ -102,15 +103,11 @@ class Reward:
         # smoothness2_reward = weight_smoothness2 * np.exp(-np.sum(rest_joints_ddot**2)/(2.0*(N-N_mimic)*sigma_smoothness2**2))
 
 
-        # motion_joints = sample_retarget.q_fields.joints
-        # motion_joints_dot = sample_retarget.qdot_fields.joints
-        # # Motion imitation reward 
-        # joint_angles = observation.joint_angles[list(self.mimic_joints_index)]
-        # desired_angles = motion_joints[list(self.mimic_joints_index)]
-        # diff = joint_angles - desired_angles
-        # weight_joints = params.get("weight_joints", 0)
-        # sigma_joints = params.get("sigma_joints", 0)
-        # joints_reward = weight_joints * np.exp(-np.sum(np.square(diff))/(2.0*N_mimic*sigma_joints**2))
+        diff = np.sum(action**2)
+        weight_joints = params.get("weight_joints", 0)
+        sigma_joints = params.get("sigma_joints", 0)
+        joints_reward = weight_joints * np.exp(-diff/(2.0*num_joints*sigma_joints**2))
+        joints_err = diff
 
         # Leg reawrd (waiting for the end effector reward to take the place of it)
         # leg_joints_angles = observation.joint_angles[[1,4,7,10,13,16,2,5,8,11,14,17]]
@@ -152,6 +149,7 @@ class Reward:
                 + smoothness_reward \
                 + height_reward     \
                 + root_ori_reward   \
+                + joints_reward     \
                 + end_effectors_reward
 
         info = {
@@ -163,7 +161,7 @@ class Reward:
             "smoothness2_reward": smoothness2_reward,
             "smoothness_reward": smoothness_reward,
 
-            # "joints_reward": joints_reward,
+            "joints_reward": joints_reward,
 
             # "joints_vel_reward": joints_vel_reward,
 
@@ -178,7 +176,6 @@ class Reward:
             "root_ori_err": root_ori_err,
             "joints_err": joints_err,
             "end_effectors_err": end_effectors_err,
-            "joints_vel_err": joints_vel_err
         }
 
         return reward, info, err

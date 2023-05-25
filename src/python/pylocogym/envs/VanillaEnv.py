@@ -214,6 +214,7 @@ class VanillaEnv(PylocoEnv):
             self.is_obs_fullstate,
             sample_retarget,
             end_effectors_pos,
+            action
         )
 
         self.sum_episode_reward_terms = {
