@@ -12,7 +12,7 @@ if __name__ == "__main__":
 
     motion_clip_file = "humanoid3d_walk.txt"
     config = "bob_env.json"
-    urdf_file = "data/robots/deep-mimic/humanoid.urdf"
+    # urdf_file = "data/robots/deep-mimic/humanoid.urdf"
 
     # log path
     log_path = PYLOCO_LOG_PATH
@@ -40,5 +40,4 @@ if __name__ == "__main__":
     visualizer.play(
         params=params,
         motion_clips_path=motion_clip_file,
-        urdf_path=urdf_file
     )

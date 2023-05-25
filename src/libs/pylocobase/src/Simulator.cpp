@@ -172,6 +172,13 @@ crl::dVector Simulator::getQDot() const {
     return dq;
 }
 
+crl::dVector Simulator::getRootOrientation() const{
+    crl::loco::RobotState state(*robot_);
+    crl::P3D pos = state.getPosition();
+    crl::Quaternion orientation = state.getOrientation();
+    return crl::dVector(orientation.coeffs());
+}
+
 crl::dVector Simulator::getIkSolverQ(const crl::dVector &q_raw,
                                     const crl::dVector &lf_pos,
                                     const crl::dVector &rf_pos,

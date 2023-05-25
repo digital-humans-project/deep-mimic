@@ -25,8 +25,8 @@ def play(params, motion_clips_path=None, urdf_path = None):
 
     if motion_clips_path is not None:
         reward_params["motion_clips_file_path"] = motion_clips_path  # add reward path to reward params
-    if urdf_path is not None:
-        env_params["urdf_path"] = urdf_path
+    # if urdf_path is not None:
+    #     env_params["urdf_path"] = urdf_path
 
     # =============
     # create a single environment for evaluation

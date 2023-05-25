@@ -5,6 +5,7 @@ ffmpeg-python
 moviepy
 ffmpeg
 tensorboard
-wandb
+wandb==0.15.3
+gym==0.21.0
 pytest
 urdf_parser_py

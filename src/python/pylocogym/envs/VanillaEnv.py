@@ -1,6 +1,7 @@
 import importlib.util
 import sys
 from importlib.machinery import SourceFileLoader
+from typing import List
 
 import numpy as np
 
@@ -29,7 +30,7 @@ from pylocogym.envs.rewards.bob.humanoid_reward import Reward
 
 
 class VanillaEnv(PylocoEnv):
-    def __init__(self, max_episode_steps, env_params, reward_params):
+    def __init__(self, max_episode_steps, env_params, reward_params, enable_rand_init=True):
         sim_dt = 1.0 / env_params["simulation_rate"]
         con_dt = 1.0 / env_params["control_rate"]
 
@@ -42,6 +43,8 @@ class VanillaEnv(PylocoEnv):
 
         loadVisuals = False
         super().__init__(pyloco.VanillaSimulator(sim_dt, con_dt, robot_id, loadVisuals), env_params, max_episode_steps)
+
+        self.enable_rand_init = enable_rand_init
 
         self._sim.lock_selected_joints = env_params.get("lock_selected_joints", False)
         self.enable_box_throwing = env_params.get("enable_box_throwing", False)
@@ -71,7 +74,33 @@ class VanillaEnv(PylocoEnv):
 
         # Dataloader
         self.motion = DeepMimicMotion(reward_params["motion_clips_file_path"])
-        self.dataset = DeepMimicMotionBobAdapter(
+        self.loop = LoopKeyframeMotionDataset(
+            self.motion, num_loop=self.clips_repeat_num, track_fields=[BobMotionDataFieldNames.ROOT_POS]
+        )
+        self.lerp = LerpMotionDataset(
+            self.loop,
+            lerp_fields=[
+                DeepMimicMotionDataFieldNames.ROOT_POS,
+            ],
+            alerp_fields=[
+                DeepMimicMotionDataFieldNames.R_KNEE_ROT,
+                DeepMimicMotionDataFieldNames.L_KNEE_ROT,
+                DeepMimicMotionDataFieldNames.R_ELBOW_ROT,
+                DeepMimicMotionDataFieldNames.L_ELBOW_ROT,
+            ],
+            slerp_fields=[
+                DeepMimicMotionDataFieldNames.ROOT_ROT,
+                DeepMimicMotionDataFieldNames.CHEST_ROT,
+                DeepMimicMotionDataFieldNames.NECK_ROT,
+                DeepMimicMotionDataFieldNames.R_HIP_ROT,
+                DeepMimicMotionDataFieldNames.R_ANKLE_ROT,
+                DeepMimicMotionDataFieldNames.R_SHOULDER_ROT,
+                DeepMimicMotionDataFieldNames.L_HIP_ROT,
+                DeepMimicMotionDataFieldNames.L_ANKLE_ROT,
+                DeepMimicMotionDataFieldNames.L_SHOULDER_ROT,
+            ],
+        )
+        self.adapter = DeepMimicMotionBobAdapter(
             reward_params["motion_clips_file_path"],
             self.num_joints,
             self.joint_angle_limit_low,
@@ -79,51 +108,45 @@ class VanillaEnv(PylocoEnv):
             self.joint_angle_default,
             # initial_pose=self.initial_pose,
         )
-        self.loop = LoopKeyframeMotionDataset(
-            self.dataset, num_loop=self.clips_repeat_num, track_fields=[BobMotionDataFieldNames.ROOT_POS]
-        )
-        self.lerp = LerpMotionDataset(self.loop)
 
-        self.motion_loop = LoopKeyframeMotionDataset(
-            self.motion, num_loop=self.clips_repeat_num, track_fields=[DeepMimicMotionDataFieldNames.ROOT_POS]
-        )
-        self.motion_lerp = LerpMotionDataset(self.motion_loop)
-
-        # Maximum episdode step
-        self.max_episode_steps = (
-            self.clips_repeat_num * (int(self.dataset.duration / self.cnt_timestep_size) - 1) / self.clips_play_speed
-        )
 
         # Reward class
         self.reward_utils = Reward(
             self.cnt_timestep_size,
             self.num_joints,
-            self.dataset.mimic_joints_index,
+            self.adapter.mimic_joints_index,
             reward_params,
         )
 
         # Forwards Kinematics class
-        self.fk = ForwardKinematics(env_params["urdf_path"])
+        # self.fk = ForwardKinematics(env_params["urdf_path"])
         self.minimum_height = 0.009
 
-    def reset(self, seed=None, return_info=False, options=None, phase=None):
+    def reset(self, seed=None, return_info=False, options=None, phase=0):
         # super().reset(seed=seed)  # We need this line to seed self.np_random
         self.current_step = 0
         self.box_throwing_counter = 0
         self.lerp.reset()  # reset dataloader
-        self.motion_lerp.reset()  # reset
 
         # self.phase = self.sample_initial_state()
-        if phase is None:
-            self.phase = 0
+        if self.enable_rand_init:
+            self.phase = self.sample_initial_state()
 
         else:
             self.phase = phase
-        self.initial_time = self.phase * self.dataset.duration
+        self.initial_time = self.phase * self.motion.duration # data scale
+
+        total_duration = self.clips_repeat_num * self.motion.duration # data
+        data_duration = total_duration - self.initial_time
+        sim_duration = data_duration / self.clips_play_speed
+
+
+        # Maximum episdode step
+        self.max_episode_steps = int(sim_duration / self.cnt_timestep_size)
 
         (q_reset, qdot_reset) = self.get_initial_state(self.initial_time)
-        # self._sim.reset(q_reset, qdot_reset, self.initial_time)  # q, qdot include root's state(pos,ori,vel,angular vel)
-        self._sim.reset()
+        self._sim.reset(q_reset, qdot_reset, self.initial_time / self.clips_play_speed)  # q, qdot include root's state(pos,ori,vel,angular vel)
+        # self._sim.reset()
 
         observation = self.get_obs()
         self.sum_episode_reward_terms = {}
@@ -134,7 +157,7 @@ class VanillaEnv(PylocoEnv):
         info = {"msg": "===Episode Reset Done!===\n"}
         return (observation, info) if return_info else observation
 
-    def step(self, action: [np.ndarray]):
+    def step(self, action: List[np.ndarray]):
         # throw box if needed
         if self.enable_box_throwing and self.current_step % self.box_throwing_interval == 0:
             random_start_pos = (self.rng.random(3) * 2 - np.ones(3)) * 2  # 3 random numbers btw -2 and 2
@@ -159,21 +182,17 @@ class VanillaEnv(PylocoEnv):
         # self.action_buffer = np.roll(self.action_buffer, self.num_joints)  # moving action buffer
         # self.action_buffer[0 : self.num_joints] = action_applied
 
-        now_time = self._sim.get_time_stamp()
-        now_t = (now_time - self.initial_time) * self.clips_play_speed + self.initial_time
-        assert abs(now_t - next_t) < 1e-10
+        # TODO: adapt to residual code
+        # Accelerate or decelerate motion clips, usually deceleration
+        # (clips_play_speed < 1 nomarlly)
+        now_t = self._sim.get_time_stamp() * self.clips_play_speed
 
         """ Forwards and Inverse kinematics """
         # Load retargeted data
-        # sample = self.motion_lerp.eval(now_t)  # original data for fk calculation
-        # motion_clips_frame = np.concatenate([[0],sample.q])
-        # self.fk.load_motion_clip_frame(motion_clips_frame)
-        # end_effectors_pos = self.fk.get_end_effectors_world_coordinates()
-        # x_pos = end_effectors_pos[:,0].copy()
-        # z_pos = end_effectors_pos[:,2].copy()
-        # end_effectors_pos[:,0] = -z_pos
-        # end_effectors_pos[:,2] = x_pos
-        # end_effectors_pos[:,1] -= 0.07
+        res = self.lerp.eval(now_t)
+        assert res is not None
+        sample, kf = res
+        sample_retarget = self.adapter.adapt(sample, kf)  # type: ignore # data after retargeting
 
         # data_joints = sample_retarget.q
         # q_desired = self._sim.get_ik_solver_q(data_joints,
@@ -183,10 +202,9 @@ class VanillaEnv(PylocoEnv):
         #                                       end_effectors_pos[3,:])
 
         end_effectors_raw = self._sim.get_fk_ee_pos(sample_retarget.q)
-        end_effectors_pos = np.array([end_effectors_raw[0],
-                                      end_effectors_raw[2],
-                                      end_effectors_raw[1],
-                                      end_effectors_raw[3]])
+        end_effectors_pos = np.array(
+            [end_effectors_raw[0], end_effectors_raw[2], end_effectors_raw[1], end_effectors_raw[3]]
+        )
         for each_pos in end_effectors_pos:
             if each_pos[1] < self.minimum_height:
                 each_pos[1] = self.minimum_height

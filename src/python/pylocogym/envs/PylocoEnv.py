@@ -53,7 +53,7 @@ class PylocoEnv(gym.Env):
         if self.is_obs_fullstate:
             self.observation_low = np.concatenate((
                 np.array([-20., 0., -20.]),  # base position: x = left, y = up, z = forward
-                np.array([-np.pi, -np.pi, -np.pi]),  # base orientation (yaw, pitch, roll)
+                np.array([-1, -1, -1]),  # base orientation quaternion (x, y, z, (w))
                 self.joint_angle_limit_low - 0.1 * np.ones(self.num_joints),  # joint position
                 np.array([-50., -50., -50.]),  # base linear velocity
                 np.array([-50., -50., -50.]),  # base angular velocity
@@ -70,7 +70,7 @@ class PylocoEnv(gym.Env):
 
             self.observation_high = np.concatenate((
                 np.array([20., 5., 20.]),  # base position: x = left, y = up, z = forward
-                np.array([np.pi, np.pi, np.pi]),  # base orientation (yaw, pitch, roll)
+                np.array([1, 1, 1]),  # base orientation quaternion (x, y, z, (w))
                 self.joint_angle_limit_high + 0.1 * np.ones(self.num_joints),  # joint position
                 np.array([50., 50., 50.]),  # base linear velocity
                 np.array([50., 50., 50.]),  # base angular velocity
@@ -87,7 +87,7 @@ class PylocoEnv(gym.Env):
 
             self.default_obs = np.concatenate((
                 np.array([0., self.base_height_default, 0.]),  # base position: x = left, y = up, z = forward
-                np.array([0., 0., 0.]),  # base orientation (yaw, pitch, roll)
+                np.array([0., 0., 0.]),  # base orientation quaternion (x, y, z, (w))
                 self.joint_angle_default,  # joint position
                 np.array([0., 0., 0.]),  # base linear velocity
                 np.array([0., 0., 0.]),  # base angular velocity
@@ -197,7 +197,7 @@ class PylocoEnv(gym.Env):
             terminated = True
             truncated = False
 
-        elif self.current_step > self.max_episode_steps:
+        elif self.current_step >= self.max_episode_steps:
             term_info = "reached max episode steps!"
             terminated = False
             truncated = True
@@ -245,6 +245,10 @@ class PylocoEnv(gym.Env):
         q = self._sim.get_q()
         qdot = self._sim.get_qdot()
         if self.is_obs_fullstate:
+            ori = self._sim.get_root_ori()
+            # we only store the x y z from [x,y,z,w], 
+            # when we need that w, just use x^2+y^2+z^2+w^2 = 1
+            q[3:6] = ori[0:3] 
             obs = np.concatenate((q, qdot), axis=None)
         else:
             obs = self.get_reduced_obs(q, qdot)
@@ -260,8 +264,8 @@ class PylocoEnv(gym.Env):
 
         # add simulation time
         now_time = self._sim.get_time_stamp()
-        dt_actual = (now_time-self.initial_time)*self.clips_play_speed
-        now_phase, _ = np.modf(self.phase + (dt_actual/self.dataset.duration))
+        data_time = now_time * self.clips_play_speed
+        now_phase, _ = np.modf(data_time/self.motion.duration)
         obs = np.concatenate((obs, now_phase), axis=None)
 
         return obs
@@ -291,6 +295,7 @@ class PylocoEnv(gym.Env):
 
     def scale_action(self, action):
         # the action space now doesn't fill the joint limits due to asymmetry
+
         return np.minimum(
             np.maximum(action * self.joint_scale_factors + self.joint_angle_default, self.joint_angle_limit_low),
             self.joint_angle_limit_high)
@@ -301,7 +306,11 @@ class PylocoEnv(gym.Env):
         now_t = initial_time
 
         # Load retargeted data
-        sample_retarget = self.lerp.eval(now_t) # data after retargeting
+        res = self.lerp.eval(now_t)
+        assert res is not None
+        sample, kf = res
+        sample_retarget = self.adapter.adapt(sample, kf)  # type: ignore # data after retargeting
+        
         # sample = self.motion_lerp.eval(now_t)  # original data for fk calculation
         
         # motion_clips_frame = np.concatenate([[0],sample.q])
@@ -319,6 +328,7 @@ class PylocoEnv(gym.Env):
         
         q_reset = sample_retarget.q
         qdot_reset = sample_retarget.qdot
+        qdot_reset = qdot_reset * self.clips_play_speed
         # qdot_reset = np.zeros(len(self.joint_angle_default) + 6)
         
         # for debug useage
@@ -333,18 +343,8 @@ class PylocoEnv(gym.Env):
 
     def sample_initial_state(self):
         # Random sample phase from [0,1)
-        seed = np.random.random_sample()
-        # self.phase = np.abs(np.random.normal(loc=0.0, scale=0.2, size=None))
-        # self.phase, _ = np.modf(self.phase)
-        if seed < 0.7:
-            return 0
-        if seed < 0.8:
-            return 0.2
-        if seed < 0.9:
-            return 0.4
-        if seed < 0.95:
-            return 0.6
-        return 0.8
+        phase, _ = np.modf(np.random.gamma(1,3)/10.0)
+        return phase
 
     def get_feet_status(self):
         status = FeetStatus()

@@ -3,6 +3,7 @@ Computing reward for Vanilla setup, constant target speed, gaussian kernels
 """
 import numpy as np
 from pylocogym.envs.rewards.utils.utils import *
+from scipy.spatial.transform import Rotation
 
 
 class Reward:
@@ -75,13 +76,12 @@ class Reward:
         height_reward = weight_height * np.exp(-diff_squere/(2.0*sigma_height**2))
 
         # Root orientation reward
-        (desired_yaw, desired_pitch, desired_roll) = sample_retarget.q_fields.root_rot
-        roll_squere = (observation.roll - desired_roll)**2
-        pitch_squere = (observation.pitch - desired_pitch)**2
-        yaw_squere = (observation.yaw - desired_yaw)**2
+        R = Rotation.from_euler('YXZ',sample_retarget.q_fields.root_rot)
+        desired_ori = R.as_quat()
+        diff_squere = (observation.ori_q - desired_ori)**2
         weight_root_ori = params.get("weight_root_ori", 0)
         sigma_root_ori = params.get("sigma_root_ori", 0)
-        root_ori_reward = weight_root_ori * np.exp(-(roll_squere + pitch_squere + yaw_squere)/(6.0*sigma_root_ori**2))
+        root_ori_reward = weight_root_ori * np.exp(-np.sum(diff_squere)/(sigma_root_ori**2))
 
         N = num_joints
         N_mimic = len(self.mimic_joints_index)

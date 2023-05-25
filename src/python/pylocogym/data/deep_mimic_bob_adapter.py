@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import auto
 from pathlib import Path
-from typing import ClassVar, Dict, Optional, Tuple, Union
+from typing import ClassVar, Dict, Tuple, Union
 
 import numpy as np
 from pylocogym.data.dataset import (
@@ -10,7 +10,7 @@ from pylocogym.data.dataset import (
     MotionDataSample,
     StrEnum,
 )
-from pylocogym.data.deep_mimic_motion import DeepMimicMotion
+from pylocogym.data.deep_mimic_motion import DeepMimicKeyframeMotionDataSample, DeepMimicMotion, DeepMimicMotionDataSample
 from scipy.spatial.transform import Rotation as R
 
 
@@ -66,13 +66,7 @@ class DeepMimicMotionBobAdapter(DeepMimicMotion):
         joint_upper_limit,
         joint_default_angle=None,
         rescale=False,
-        initial_pose: Optional[np.ndarray] = None,
-        initial_pose_dt: float = 0.03333,
     ):
-        if initial_pose is not None:
-            super().__init__(path, t0=initial_pose_dt)
-        else:
-            super().__init__(path)
         self.joint_angle_limit_low = joint_lower_limit
         self.joint_angle_limit_high = joint_upper_limit
         self.joint_angle_default = joint_default_angle
@@ -84,8 +78,6 @@ class DeepMimicMotionBobAdapter(DeepMimicMotion):
         )
         self.num_joints = num_joints
         self.is_rescale_action = rescale
-        self.initial_pose = initial_pose
-        self.initial_pose_dt = initial_pose_dt
 
     def quart_to_rpy(self, q, mode):
         # q is in (w,x,y,z) format
@@ -176,70 +168,32 @@ class DeepMimicMotionBobAdapter(DeepMimicMotion):
         # our's x axis == -1 * motion's z axis
         # our's z axis == motion's x axis
         return np.array([-motion_clips_q[2], motion_clips_q[1], motion_clips_q[0]])
-    
-    def __len__(self) -> int:
-        len = super().__len__()
-        if self.initial_pose is not None:
-            len += 1
-        return len
 
-    @property
-    def duration(self) -> float:
-        res = super().duration
-        if self.initial_pose is not None:
-            res += self.initial_pose_dt
-        return res
 
-    def _get_item(self, idx):
-        sample = super().__getitem__(idx)
-        j0 = self.retarget_joint_angle(sample.q0)
-        j1 = self.retarget_joint_angle(sample.q1)
-        root_rot_0 = self.retarget_base_orientation(sample.q0)
-        root_rot_1 = self.retarget_base_orientation(sample.q1)
-        root_pos_0 = self.retarget_base_pos(sample.q0)
-        root_pos_1 = self.retarget_base_pos(sample.q1)
-        root_ang_vel = angular_velocities(sample.q0_fields.root_rot, sample.q1_fields.root_rot, sample.dt)
+    def adapt(self, sample: DeepMimicMotionDataSample, kf: DeepMimicKeyframeMotionDataSample) -> BobMotionDataSample:
+        j = self.retarget_joint_angle(sample.q)
+        root_rot = self.retarget_base_orientation(sample.q)
+        root_pos = self.retarget_base_pos(sample.q)
+        q = np.concatenate([root_pos, root_rot, j])
+
+        j0 = self.retarget_joint_angle(kf.q0)
+        j1 = self.retarget_joint_angle(kf.q1)
+        root_rot_0 = self.retarget_base_orientation(kf.q0)
+        root_rot_1 = self.retarget_base_orientation(kf.q1)
+        root_pos_0 = self.retarget_base_pos(kf.q0)
+        root_pos_1 = self.retarget_base_pos(kf.q1)
         q0 = np.concatenate([root_pos_0, root_rot_0, j0])
         q1 = np.concatenate([root_pos_1, root_rot_1, j1])
-        qdot = (q1 - q0) / sample.dt
+        qdot = (q1 - q0) / kf.dt
+        root_ang_vel = angular_velocities(kf.q0_fields.root_rot, kf.q1_fields.root_rot, kf.dt)
         # our's y axis == motion's y axis
         # our's x axis == -1 * motion's z axis
         # our's z axis == motion's x axis
         qdot[3:6] = np.array([root_ang_vel[1], -root_ang_vel[2], root_ang_vel[0]])
 
-        return BobKeyframeMotionDataSample(
-            t0=sample.t0,
-            q0=q0,
-            q1=q1,
+        return BobMotionDataSample(
+            t=sample.t,
+            q=q,
             qdot=qdot,
-            dt=sample.dt,
-            phase0=sample.phase0,
-            phase1=sample.phase1,
+            phase=sample.phase,
         )
-
-    def __getitem__(self, idx):
-        if self.initial_pose is not None:
-            new_idx = idx
-            if idx != 0:
-                new_idx = idx - 1
-            sample = self._get_item(new_idx)
-            sample.phase0 = sample.t0 / self.duration
-            sample.phase1 = sample.t1 / self.duration
-            if idx == 0:
-                q0, q1 = self.initial_pose.copy(), sample.q0
-                dt = self.initial_pose_dt
-                qdot = (q1 - q0) / dt
-                orig_sample = super().__getitem__(0)
-                root_ang_vel = angular_velocities(np.array([1, 0, 0, 0]), orig_sample.q0_fields.root_rot, sample.dt)
-                qdot[3:6] = root_ang_vel
-                return BobKeyframeMotionDataSample(
-                    t0=0,
-                    q0=q0,
-                    q1=q1,
-                    qdot=qdot,
-                    dt=dt,
-                    phase0=0,
-                    phase1=sample.phase0,
-                )
-            return sample
-        return self._get_item(idx)

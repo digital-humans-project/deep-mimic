@@ -28,16 +28,21 @@ class ObservationData:
 
             # orientation:
             self.ori = observation_raw[3:6]  # Euler angles (yaw, pitch, roll)
-            self.yaw = observation_raw[3]
-            self.pitch = observation_raw[4]
-            self.roll = observation_raw[5]
+            # self.yaw = observation_raw[3]
+            # self.pitch = observation_raw[4]
+            # self.roll = observation_raw[5]
+            self.ori_x = observation_raw[3]
+            self.ori_y = observation_raw[4]
+            self.ori_z = observation_raw[5]
+            self.ori_w = np.sqrt(1 - np.sum(np.square(observation_raw[3:6])))
+            self.ori_q = np.array([self.ori_x,self.ori_y,self.ori_z,self.ori_w])
 
             # joint angles:
             self.joint_angles = observation_raw[6 : 6 + num_joints]
 
             # linear velocity:
-            self.vel = observation_raw[6 + num_joints : 9 + num_joints]  # in global coordinates
-            rotation_to_local = Rotation.from_euler("yxz", -self.ori)
+            self.vel = observation_raw[6 + num_joints:9 + num_joints]  # in global coordinates
+            rotation_to_local = Rotation.from_euler('YXZ', -self.ori)
             self.local_vel = rotation_to_local.apply(self.vel)
 
             # angular velocity:

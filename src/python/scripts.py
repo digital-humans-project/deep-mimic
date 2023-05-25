@@ -1,6 +1,7 @@
 import pathlib
-import datetime
+from datetime import datetime
 import wandb
+import os
 import torch.nn
 from shutil import copy as sh_copy
 from stable_baselines3.common import utils
@@ -9,30 +10,27 @@ from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv, VecNormalize, VecVideoRecorder
 from pylocogym.callbacks import RecordEvalCallback, TensorboardCallback, CheckpointSaveCallback
 from pylocogym.algorithms import CustomPPO
-from stable_baselines3 import PPO
 
 
 def manage_save_path(log_dir, name):
-    date = datetime.date.today().strftime("%Y-%m-%d-%H-%M-%S-")
+    date = datetime.now().strftime("%Y-%m-%d-%H-%M-%S-")
     name = date + name
     latest_run_id = utils.get_latest_run_id(log_dir, name)
-    save_path = utils.os.path.join(log_dir, f"{name}_{latest_run_id + 1}")
+    save_path = os.path.join(log_dir, f"{name}_{latest_run_id + 1}")
     pathlib.Path(save_path).mkdir(parents=True, exist_ok=True)
     return save_path
 
 
 def train(params,
           log_path, 
-          dir_name, 
           debug, 
           video_recorder, 
           wandb_log, 
-          motion_clips_path=None,
-          urdf_path = None, 
           config_path='config.json'):
     
+
+
     """create a model and train it"""
-    save_path = manage_save_path(log_path, dir_name)
 
     # =============
     # unpack params
@@ -44,15 +42,21 @@ def train(params,
     model_params = params['model_params']
     reward_params = params['reward_params']
 
-    n_envs = 1
+    steps = hyp_params['time_steps']
+    motion_clip_file = params['motion_file']
+    dir_name = "{id}-{clips}-{steps:.1f}M".format(id=params['env_id'], clips=motion_clip_file, steps=float(steps / 1e6))
+    save_path = manage_save_path(log_path, dir_name)
+    
+    
+    n_envs = hyp_params['num_envs'] if (not debug) else 1
     max_episode_steps = hyp_params.get('max_episode_steps', 500)
     max_evaluation_steps = hyp_params.get('max_evaluation_steps', 500)
     seed = hyp_params.get("seed", 313)
 
-    if motion_clips_path is not None:
-        reward_params["motion_clips_file_path"] = motion_clips_path  # add reward path to reward params
-    if urdf_path is not None:
-        env_params["urdf_path"] = urdf_path
+    motion_clip_file = os.path.join("data", "deepmimic", "motions", motion_clip_file)
+
+    reward_params["motion_clips_file_path"] = motion_clip_file  # add reward path to reward params
+
 
     # =============
     # weights and biases
@@ -69,8 +73,7 @@ def train(params,
             dir=log_path
         )
         wandb.save(config_path)
-        if motion_clips_path is not None:
-            wandb.save(motion_clips_path)
+
 
     # =============
     # create vectorized environment for training
@@ -103,7 +106,7 @@ def train(params,
         env_id,
         n_envs=1,
         seed=seed,
-        env_kwargs=env_kwargs,
+        env_kwargs={**env_kwargs, "enable_rand_init": False},
         vec_env_cls=DummyVecEnv,
     )
 
@@ -199,8 +202,7 @@ def train(params,
     # =============
 
     sh_copy(config_path, utils.os.path.join(save_path, "config.json"))
-    if motion_clips_path is not None:
-        sh_copy(motion_clips_path, utils.os.path.join(save_path, "reward.py"))
+
 
     # =============
     # start training
