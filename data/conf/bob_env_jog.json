@@ -20,7 +20,7 @@
     "robot_model": "Bob",
     "control_rate": 60.0,
     "simulation_rate": 120.0,
-    "motors_kp": 800.0,
+    "motors_kp": 500.0,
     "motors_kd": 50.0,
     "max_torque": 200.0,
     "is_obs_fullstate": true,
