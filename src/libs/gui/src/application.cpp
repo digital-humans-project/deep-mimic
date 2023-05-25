@@ -24,8 +24,15 @@ namespace gui {
 Application::Application(const char *title, int width, int height, std::string iconPath) : width(width), height(height) {
     if (!glfwInit()) {
         // An error occured
-        std::cout << "GLFW initialization failed\n";
-        exit(0);
+        std::cerr << "GLFW initialization failed: ";
+        const char *description;
+        if (glfwGetError(&description) != GLFW_NO_ERROR) {
+            std::cerr << description << std::endl;
+        }
+        else {
+            std::cerr << "no further details" << std::endl;
+        }
+        exit(-1);
     }
 
     init(title, width, height, iconPath);

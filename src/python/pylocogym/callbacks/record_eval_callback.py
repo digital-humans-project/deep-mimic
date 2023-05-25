@@ -31,6 +31,10 @@ class RecordEvalCallback(EvalCallback):
                          eval_freq=eval_freq,
                          deterministic=deterministic,
                          render=render)
+    def _on_training_start(self) -> None:
+        super()._on_training_start()
+
+        self.eval_env.reset() # sanity check to make sure the env is functional
 
     def _on_step(self) -> bool:
 
