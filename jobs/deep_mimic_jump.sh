@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH -n 32                              # Number of cores
+#SBATCH -n 20                              # Number of cores
 #SBATCH --time=24:00:00                    # hours:minutes:seconds
 #SBATCH --mem-per-cpu=2000
 #SBATCH --tmp=4000                        # per node!!
