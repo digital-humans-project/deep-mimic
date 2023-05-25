@@ -44,7 +44,7 @@ def train(params,
 
     steps = hyp_params['time_steps']
     motion_clip_file = params['motion_file']
-    dir_name = "{id}-{clips}-{steps:.1f}M".format(id=params['env_id'], clips=motion_clip_file, steps=float(steps / 1e6))
+    dir_name = "{id}-{clips}-{steps:.1f}M-residual".format(id=params['env_id'], clips=motion_clip_file, steps=float(steps / 1e6))
     save_path = manage_save_path(log_path, dir_name)
     
     

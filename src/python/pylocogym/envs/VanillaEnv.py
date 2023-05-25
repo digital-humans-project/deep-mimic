@@ -166,10 +166,14 @@ class VanillaEnv(PylocoEnv):
 
         # Accelerate or decelerate motion clips, usually deceleration
         # (clips_play_speed < 1 nomarlly)
-        next_time = self._sim.get_time_stamp() + self.cnt_timestep_size
-        next_t = (next_time - self.initial_time) * self.clips_play_speed + self.initial_time
-        sample_retarget = self.lerp.eval(next_t)  # data after retargeting
-        assert sample_retarget is not None
+        next_t = (self._sim.get_time_stamp() + self.cnt_timestep_size) * self.clips_play_speed
+
+        """ Forwards and Inverse kinematics """
+        # Load retargeted data
+        res = self.lerp.eval(next_t)
+        assert res is not None
+        sample, kf = res
+        sample_retarget = self.adapter.adapt(sample, kf)  # type: ignore # data after retargeting
         
         # run simulation
         target_act = action * np.pi + sample_retarget.q_fields.joints
@@ -177,22 +181,13 @@ class VanillaEnv(PylocoEnv):
         self._sim.step(action_applied)
         observation = self.get_obs()
 
+        now_t = self._sim.get_time_stamp() * self.clips_play_speed
+        assert abs(now_t - next_t) < 1e-6, f"{now_t} - {next_t} = {now_t - next_t}"
+
         # update variables
         self.current_step += 1
         # self.action_buffer = np.roll(self.action_buffer, self.num_joints)  # moving action buffer
         # self.action_buffer[0 : self.num_joints] = action_applied
-
-        # TODO: adapt to residual code
-        # Accelerate or decelerate motion clips, usually deceleration
-        # (clips_play_speed < 1 nomarlly)
-        now_t = self._sim.get_time_stamp() * self.clips_play_speed
-
-        """ Forwards and Inverse kinematics """
-        # Load retargeted data
-        res = self.lerp.eval(now_t)
-        assert res is not None
-        sample, kf = res
-        sample_retarget = self.adapter.adapt(sample, kf)  # type: ignore # data after retargeting
 
         # data_joints = sample_retarget.q
         # q_desired = self._sim.get_ik_solver_q(data_joints,
