@@ -54,7 +54,7 @@ class VanillaEnv(PylocoEnv):
 
         self.reward_params = reward_params
         self.sum_episode_reward_terms = {}
-        self.action_buffer = np.zeros(self.num_joints * 3)  # history of actions [current, previous, past previous]
+        # self.action_buffer = np.zeros(self.num_joints * 3)  # history of actions [current, previous, past previous]
 
         self.rng = np.random.default_rng(env_params.get("seed", 1))  # create a local random number generator with seed
 
@@ -104,6 +104,7 @@ class VanillaEnv(PylocoEnv):
 
         # Forwards Kinematics class
         self.fk = ForwardKinematics(env_params["urdf_path"])
+        self.minimum_height = 0.009
 
     def reset(self, seed=None, return_info=False, options=None, phase=None):
         # super().reset(seed=seed)  # We need this line to seed self.np_random
@@ -121,14 +122,14 @@ class VanillaEnv(PylocoEnv):
         self.initial_time = self.phase * self.dataset.duration
 
         (q_reset, qdot_reset) = self.get_initial_state(self.initial_time)
-        self._sim.reset(q_reset, qdot_reset, self.initial_time)  # q, qdot include root's state(pos,ori,vel,angular vel)
-        # self._sim.reset()
+        # self._sim.reset(q_reset, qdot_reset, self.initial_time)  # q, qdot include root's state(pos,ori,vel,angular vel)
+        self._sim.reset()
 
         observation = self.get_obs()
         self.sum_episode_reward_terms = {}
-        self.action_buffer = np.concatenate(
-            (self.joint_angle_default, self.joint_angle_default, self.joint_angle_default), axis=None
-        )
+        # self.action_buffer = np.concatenate(
+        #     (self.joint_angle_default, self.joint_angle_default, self.joint_angle_default), axis=None
+        # )
 
         info = {"msg": "===Episode Reset Done!===\n"}
         return (observation, info) if return_info else observation
@@ -155,8 +156,8 @@ class VanillaEnv(PylocoEnv):
 
         # update variables
         self.current_step += 1
-        self.action_buffer = np.roll(self.action_buffer, self.num_joints)  # moving action buffer
-        self.action_buffer[0 : self.num_joints] = action_applied
+        # self.action_buffer = np.roll(self.action_buffer, self.num_joints)  # moving action buffer
+        # self.action_buffer[0 : self.num_joints] = action_applied
 
         now_time = self._sim.get_time_stamp()
         now_t = (now_time - self.initial_time) * self.clips_play_speed + self.initial_time
@@ -182,15 +183,18 @@ class VanillaEnv(PylocoEnv):
         #                                       end_effectors_pos[3,:])
 
         end_effectors_raw = self._sim.get_fk_ee_pos(sample_retarget.q)
-        end_effectors_pos = np.array(
-            [end_effectors_raw[0], end_effectors_raw[2], end_effectors_raw[1], end_effectors_raw[3]]
-        )
+        end_effectors_pos = np.array([end_effectors_raw[0],
+                                      end_effectors_raw[2],
+                                      end_effectors_raw[1],
+                                      end_effectors_raw[3]])
+        for each_pos in end_effectors_pos:
+            if each_pos[1] < self.minimum_height:
+                each_pos[1] = self.minimum_height
         # sample_retarget.q = q_desired
 
         # compute reward
         reward, reward_info = self.reward_utils.compute_reward(
             observation,
-            self.action_buffer,
             self.is_obs_fullstate,
             sample_retarget,
             end_effectors_pos,
