@@ -22,13 +22,13 @@ public:
     // options
     bool showMeshes = true;
     bool showSkeleton = true;
-    bool showJointAxes = true;
-    bool showJointLimits = true;
+    bool showJointAxes = false;
+    bool showJointLimits = false;
     bool showJointAngles = false;
-    bool showCollisionSpheres = false;
-    bool showEndEffectors = false;
+    bool showCollisionSpheres = true;
+    bool showEndEffectors = true;
     bool showMOI = false;
-    bool showCoordFrame = false;
+    bool showCoordFrame = true;
 
 protected:
     // root configuration

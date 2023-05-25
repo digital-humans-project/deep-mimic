@@ -161,7 +161,7 @@ public:
 
     // physics related coefficients
     double restitutionCoeff = 0;
-    double frictionCoeff = 0.8;
+    double frictionCoeff = 1.0;
 
 public:
     /**

@@ -48,7 +48,7 @@ const std::vector<RobotInfo> robotInfos = {
         "Bob",                                                              //
         PYLOCO_DATA_FOLDER "/robots/bob/bob.rbs",                           //
         "",                                                                 //
-        {{"l", "lFoot"}, {"r", "rFoot"}},                                   //
+        {{"lf", "lFoot"}, {"rf", "rFoot"}, {"lh", "lHand"}, {"rh", "rHand"}}, //
         {},  //
         0.9                                                                 //
     },

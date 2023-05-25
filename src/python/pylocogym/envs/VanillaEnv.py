@@ -1,10 +1,12 @@
-import sys
-import numpy as np
 import importlib.util
+import sys
 from importlib.machinery import SourceFileLoader
+from typing import List
 
-from .PylocoEnv import PylocoEnv
+import numpy as np
+
 from ..cmake_variables import PYLOCO_LIB_PATH
+from .PylocoEnv import PylocoEnv
 
 # importing pyloco
 spec = importlib.util.spec_from_file_location("pyloco", PYLOCO_LIB_PATH)
@@ -13,157 +15,145 @@ sys.modules["module.name"] = pyloco
 spec.loader.exec_module(pyloco)
 
 
-from scipy.spatial.transform import Rotation as R
+from pylocogym.data.deep_mimic_bob_adapter import (
+    BobMotionDataFieldNames,
+    DeepMimicMotionBobAdapter,
+)
+from pylocogym.data.deep_mimic_motion import DeepMimicMotion, DeepMimicMotionDataFieldNames
+from pylocogym.data.lerp_dataset import LerpMotionDataset
+from pylocogym.data.loop_dataset import LoopKeyframeMotionDataset
+from pylocogym.envs.rewards.bob.humanoid_reward import Reward
 
-class Retarget:
-    def __init__(self, action_shape, joint_lower_limit, joint_upper_limit, joint_default_angle = None):
-
-        self.joint_angle_limit_low = joint_lower_limit
-        self.joint_angle_limit_high = joint_upper_limit
-        self.joint_angle_default = joint_default_angle
-        if self.joint_angle_default is None:
-            self.joint_angle_default = np.array([ 0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,
-                                                0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,
-                                                0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,
-                                                0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,
-                                                0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0 ])
-        self.joint_scale_factors = np.maximum(abs(self.joint_angle_default - self.joint_angle_limit_low),
-                                abs(self.joint_angle_default - self.joint_angle_limit_high))
-        self.action_shape = action_shape
-        
-    def quart_to_rpy(self, q, mode):
-        # q is in (w,x,y,z) format
-        q_xyzw = list(q[1:])
-        q_xyzw.append(q[0])
-        r = R.from_quat(q_xyzw) 
-        euler = r.as_euler(mode)
-        return euler[0], euler[1], euler[2]
-    
-    def rescale_action(self, action):
-        bound_action = np.minimum(np.maximum(action,self.joint_angle_limit_low),self.joint_angle_limit_high)
-        scaled_action = (bound_action - self.joint_angle_default) / self.joint_scale_factors 
-        return scaled_action
-    
-    def retarget_joint_angle(self, motion_clips_q, require_root = False):
-        """Given a motion_clips orientation data, return a retarget action"""
-        action = np.zeros(self.action_shape)
-        if not require_root:
-
-            (chest_z, chest_y, chest_x) = self.quart_to_rpy(motion_clips_q[7:11], 'zyx')
-            (neck_z,  neck_y,  neck_x) = self.quart_to_rpy(motion_clips_q[11:15],'zyx')
-            (r_hip_z, r_hip_x, r_hip_y) = self.quart_to_rpy(motion_clips_q[15:19],'zxy')
-            (r_ankle_z, r_ankle_x, r_ankle_y) = self.quart_to_rpy(motion_clips_q[20:24],'zxy')
-            (r_shoulder_z, r_shoulder_x, r_shoulder_y) = self.quart_to_rpy(motion_clips_q[24:28],'zxy')
-            (l_hip_z, l_hip_x, l_hip_y) = self.quart_to_rpy(motion_clips_q[29:33],'zxy')
-            (l_ankle_z, l_ankle_x, l_ankle_y) = self.quart_to_rpy(motion_clips_q[34:38],'zxy')
-            (l_shoulder_z, l_shoulder_x, l_shoulder_y) = self.quart_to_rpy(motion_clips_q[38:42],'zxy')
-
-            # chest - xyz euler angle 
-            action[0] = -chest_z
-            action[3] = chest_y
-            action[6] = chest_x
-
-            # neck - xyz euler angle 
-            action[18] = -neck_z
-            action[23] = neck_y
-            action[26] = neck_x
-
-            # shoulder - xzy euler angle 
-            action[27] = -l_shoulder_z
-            action[30] = l_shoulder_x
-            action[33] = l_shoulder_y
-
-            action[28] = -r_shoulder_z
-            action[31] = r_shoulder_x
-            action[34] = r_shoulder_y
-
-            # ankle - xzy euler angle 
-            action[13] = -l_ankle_z
-            action[16] = l_ankle_x
-
-            action[14] = -r_ankle_z
-            action[17] = r_ankle_x            
-
-            # hip - xzy euler angle 
-            action[1] = -l_hip_z
-            action[4] = l_hip_x
-            action[7] = l_hip_y
-
-            action[2] = -r_hip_z
-            action[5] = r_hip_x
-            action[8] = r_hip_y
-
-            r_knee = motion_clips_q[19:20]
-            r_elbow = motion_clips_q[28:29]
-            l_knee = motion_clips_q[33:34]
-            l_elbow = motion_clips_q[42:43]
-
-            # elbow - revolute joint 
-            action[36] = l_elbow
-            action[37] = r_elbow
-
-            # knee - revolute joint 
-            action[10] = l_knee
-            action[11] = r_knee
-
-            action = self.rescale_action(action)
-
-        return action
 
 class VanillaEnv(PylocoEnv):
+    def __init__(self, max_episode_steps, env_params, reward_params, enable_rand_init=True):
+        sim_dt = 1.0 / env_params["simulation_rate"]
+        con_dt = 1.0 / env_params["control_rate"]
 
-    def __init__(self, max_episode_steps, env_params, reward_params):
-        sim_dt = 1.0 / env_params['simulation_rate']
-        con_dt = 1.0 / env_params['control_rate']
-
-        if env_params['robot_model'] == "Dog":
-            robot_id = 0
-        elif env_params['robot_model'] == "Go1":
-            robot_id = 1
-        elif env_params['robot_model'] == "Bob":
-            robot_id = 2
+        # if env_params['robot_model'] == "Dog":
+        #     robot_id = 0
+        # elif env_params['robot_model'] == "Go1":
+        #     robot_id = 1
+        # elif env_params['robot_model'] == "Bob":
+        robot_id = 2
 
         loadVisuals = False
         super().__init__(pyloco.VanillaSimulator(sim_dt, con_dt, robot_id, loadVisuals), env_params, max_episode_steps)
 
-        self._sim.lock_selected_joints = env_params.get('lock_selected_joints', False)
-        self.enable_box_throwing = env_params.get('enable_box_throwing', False)
+        self.enable_rand_init = enable_rand_init
+
+        self._sim.lock_selected_joints = env_params.get("lock_selected_joints", False)
+        self.enable_box_throwing = env_params.get("enable_box_throwing", False)
         self.box_throwing_interval = 100
         self.box_throwing_strength = 2
         self.box_throwing_counter = 0
 
-        if "reward_file_path" in reward_params.keys():
-            reward_file_path = reward_params["reward_file_path"]
-
-            self.reward_utils = SourceFileLoader('reward_utils', reward_file_path).load_module()
-        else:
-            raise Exception("Reward file not specified. Please specify via --rewardFile.")
-
         self.cnt_timestep_size = self._sim.control_timestep_size  # this should be equal to con_dt
         self.current_step = 0
-        self.max_episode_steps = max_episode_steps
+
         self.reward_params = reward_params
         self.sum_episode_reward_terms = {}
-        self.action_buffer = np.zeros(self.num_joints * 3)  # history of actions [current, previous, past previous]
+        # self.action_buffer = np.zeros(self.num_joints * 3)  # history of actions [current, previous, past previous]
 
-        self.rng = np.random.default_rng(
-            env_params.get("seed", 1))  # create a local random number generator with seed
+        self.rng = np.random.default_rng(env_params.get("seed", 1))  # create a local random number generator with seed
 
-    def reset(self, seed=None, return_info=False, options=None):
+        # Set maximum episode length according to motion clips
+        self.clips_play_speed = reward_params["clips_play_speed"]  # play speed for motion clips
+        self.clips_play_speed = reward_params["clips_play_speed"]  # play speed for motion clips
+        self.clips_repeat_num = reward_params["clips_repeat_num"]  # the number of times the clip needs to be repeated
+        self.initial_pose = np.concatenate(
+            [
+                np.array([0, self._sim.nominal_base_height, 0, 0, 0, 0]),
+                self.joint_angle_default,
+            ]
+        )
+
+        # Dataloader
+        self.motion = DeepMimicMotion(reward_params["motion_clips_file_path"])
+        self.loop = LoopKeyframeMotionDataset(
+            self.motion, num_loop=self.clips_repeat_num, track_fields=[BobMotionDataFieldNames.ROOT_POS]
+        )
+        self.lerp = LerpMotionDataset(
+            self.loop,
+            lerp_fields=[
+                DeepMimicMotionDataFieldNames.ROOT_POS,
+            ],
+            alerp_fields=[
+                DeepMimicMotionDataFieldNames.R_KNEE_ROT,
+                DeepMimicMotionDataFieldNames.L_KNEE_ROT,
+                DeepMimicMotionDataFieldNames.R_ELBOW_ROT,
+                DeepMimicMotionDataFieldNames.L_ELBOW_ROT,
+            ],
+            slerp_fields=[
+                DeepMimicMotionDataFieldNames.ROOT_ROT,
+                DeepMimicMotionDataFieldNames.CHEST_ROT,
+                DeepMimicMotionDataFieldNames.NECK_ROT,
+                DeepMimicMotionDataFieldNames.R_HIP_ROT,
+                DeepMimicMotionDataFieldNames.R_ANKLE_ROT,
+                DeepMimicMotionDataFieldNames.R_SHOULDER_ROT,
+                DeepMimicMotionDataFieldNames.L_HIP_ROT,
+                DeepMimicMotionDataFieldNames.L_ANKLE_ROT,
+                DeepMimicMotionDataFieldNames.L_SHOULDER_ROT,
+            ],
+        )
+        self.adapter = DeepMimicMotionBobAdapter(
+            reward_params["motion_clips_file_path"],
+            self.num_joints,
+            self.joint_angle_limit_low,
+            self.joint_angle_limit_high,
+            self.joint_angle_default,
+            # initial_pose=self.initial_pose,
+        )
+
+
+        # Reward class
+        self.reward_utils = Reward(
+            self.cnt_timestep_size,
+            self.num_joints,
+            self.adapter.mimic_joints_index,
+            reward_params,
+        )
+
+        # Forwards Kinematics class
+        # self.fk = ForwardKinematics(env_params["urdf_path"])
+        self.minimum_height = 0.009
+
+    def reset(self, seed=None, return_info=False, options=None, phase=0):
         # super().reset(seed=seed)  # We need this line to seed self.np_random
         self.current_step = 0
         self.box_throwing_counter = 0
-        self._sim.reset()
+        self.lerp.reset()  # reset dataloader
+
+        # self.phase = self.sample_initial_state()
+        if self.enable_rand_init:
+            self.phase = self.sample_initial_state()
+
+        else:
+            self.phase = phase
+        self.initial_time = self.phase * self.motion.duration # data scale
+
+        total_duration = self.clips_repeat_num * self.motion.duration # data
+        data_duration = total_duration - self.initial_time
+        sim_duration = data_duration / self.clips_play_speed
+
+
+        # Maximum episdode step
+        self.max_episode_steps = int(sim_duration / self.cnt_timestep_size)
+
+        (q_reset, qdot_reset) = self.get_initial_state(self.initial_time)
+        self._sim.reset(q_reset, qdot_reset, self.initial_time / self.clips_play_speed)  # q, qdot include root's state(pos,ori,vel,angular vel)
+        # self._sim.reset()
+
         observation = self.get_obs()
         self.sum_episode_reward_terms = {}
-        self.action_buffer = np.concatenate(
-            (self.joint_angle_default, self.joint_angle_default, self.joint_angle_default), axis=None)
+        # self.action_buffer = np.concatenate(
+        #     (self.joint_angle_default, self.joint_angle_default, self.joint_angle_default), axis=None
+        # )
 
         info = {"msg": "===Episode Reset Done!===\n"}
         return (observation, info) if return_info else observation
 
-    def step(self, action: [np.ndarray]):
-
+    def step(self, action: List[np.ndarray]):
         # throw box if needed
         if self.enable_box_throwing and self.current_step % self.box_throwing_interval == 0:
             random_start_pos = (self.rng.random(3) * 2 - np.ones(3)) * 2  # 3 random numbers btw -2 and 2
@@ -177,18 +167,47 @@ class VanillaEnv(PylocoEnv):
 
         # update variables
         self.current_step += 1
-        self.action_buffer = np.roll(self.action_buffer, self.num_joints)  # moving action buffer
-        self.action_buffer[0:self.num_joints] = action_applied
+        # self.action_buffer = np.roll(self.action_buffer, self.num_joints)  # moving action buffer
+        # self.action_buffer[0 : self.num_joints] = action_applied
+
+        # Accelerate or decelerate motion clips, usually deceleration
+        # (clips_play_speed < 1 nomarlly)
+        now_t = self._sim.get_time_stamp() * self.clips_play_speed
+
+        """ Forwards and Inverse kinematics """
+        # Load retargeted data
+        res = self.lerp.eval(now_t)
+        assert res is not None
+        sample, kf = res
+        sample_retarget = self.adapter.adapt(sample, kf)  # type: ignore # data after retargeting
+
+        # data_joints = sample_retarget.q
+        # q_desired = self._sim.get_ik_solver_q(data_joints,
+        #                                       end_effectors_pos[0,:],
+        #                                       end_effectors_pos[1,:],
+        #                                       end_effectors_pos[2,:],
+        #                                       end_effectors_pos[3,:])
+
+        end_effectors_raw = self._sim.get_fk_ee_pos(sample_retarget.q)
+        end_effectors_pos = np.array(
+            [end_effectors_raw[0], end_effectors_raw[2], end_effectors_raw[1], end_effectors_raw[3]]
+        )
+        for each_pos in end_effectors_pos:
+            if each_pos[1] < self.minimum_height:
+                each_pos[1] = self.minimum_height
+        # sample_retarget.q = q_desired
 
         # compute reward
-        reward, reward_info = self.reward_utils.compute_reward(observation, self.cnt_timestep_size, self.num_joints,
-                                                               self.reward_params, self.get_feet_status(),
-                                                               self._sim.get_all_motor_torques(), self.action_buffer,
-                                                               self.is_obs_fullstate, self.joint_angle_default,
-                                                               self._sim.nominal_base_height)
+        reward, reward_info = self.reward_utils.compute_reward(
+            observation,
+            self.is_obs_fullstate,
+            sample_retarget,
+            end_effectors_pos,
+        )
 
-        self.sum_episode_reward_terms = {key: self.sum_episode_reward_terms.get(key, 0) + reward_info.get(key, 0) for
-                                         key in reward_info.keys()}
+        self.sum_episode_reward_terms = {
+            key: self.sum_episode_reward_terms.get(key, 0) + reward_info.get(key, 0) for key in reward_info.keys()
+        }
 
         # check if episode is done
         terminated, truncated, term_info = self.is_done(observation)
@@ -196,7 +215,7 @@ class VanillaEnv(PylocoEnv):
 
         # punishment for early termination
         if terminated:
-            reward -= self.reward_utils.punishment(self.current_step, self.max_episode_steps, self.reward_params)
+            reward -= self.reward_utils.punishment(self.current_step, self.max_episode_steps)
 
         info = {
             "is_success": truncated,
@@ -205,12 +224,13 @@ class VanillaEnv(PylocoEnv):
             "action_applied": action_applied,
             "reward_info": reward_info,
             "TimeLimit.truncated": truncated,
-            "msg": "=== 1 Episode Taken ===\n"
+            "msg": "=== 1 Episode Taken ===\n",
         }
 
         if done:
-            mean_episode_reward_terms = {key: self.sum_episode_reward_terms.get(key, 0) / self.current_step for key in
-                                         reward_info.keys()}
+            mean_episode_reward_terms = {
+                key: self.sum_episode_reward_terms.get(key, 0) / self.current_step for key in reward_info.keys()
+            }
             info["mean_episode_reward_terms"] = mean_episode_reward_terms
 
         return observation, reward, done, info

@@ -82,7 +82,7 @@ public:
     /**
      * reset with given initial configuration
      */
-    void reset(const crl::dVector &q, const crl::dVector &qDot);
+    void reset(const crl::dVector &q, const crl::dVector &qDot, const double & t0);
 
     /**
      * set generalized coordinates and generalized velocity of robot.
@@ -101,6 +101,9 @@ public:
         return timeStamp_;
     }
 
+    void setTimeStamp(double timeStamp) {
+        timeStamp_ = timeStamp;
+    }
     /**
      * get generalized coordinates of robot configuration
      */
@@ -110,6 +113,25 @@ public:
      * get generalized velocity of robot configuration
      */
     crl::dVector getQDot() const;
+    
+    /**
+     * get generalized quaternion of robot root orientation
+     */
+    crl::dVector getRootOrientation() const;
+
+    /**
+     * get Inverse Kinematic solver for speicfic end_effectors pos
+     */
+    crl::dVector getIkSolverQ(const crl::dVector &q_raw,  
+                                const crl::dVector &lf_pos,
+                                const crl::dVector &rf_pos,
+                                const crl::dVector &lh_pos,
+                                const crl::dVector &rh_pos) const;
+    
+    /**
+     * get Forward Kinematic end effectors pos given specific q
+     */
+    std::vector<crl::dVector> getFkEEPosQ(const crl::dVector &q_raw) const;
 
     /**
      * get nun_feet x 3 matrix which contains feet position

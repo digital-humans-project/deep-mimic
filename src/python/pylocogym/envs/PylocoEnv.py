@@ -52,29 +52,53 @@ class PylocoEnv(gym.Env):
         if self.is_obs_fullstate:
             self.observation_low = np.concatenate((
                 np.array([-20., 0., -20.]),  # base position: x = left, y = up, z = forward
-                np.array([-np.pi, -np.pi, -np.pi]),  # base orientation (yaw, pitch, roll)
+                np.array([-1, -1, -1]),  # base orientation quaternion (x, y, z, (w))
                 self.joint_angle_limit_low - 0.1 * np.ones(self.num_joints),  # joint position
                 np.array([-50., -50., -50.]),  # base linear velocity
                 np.array([-50., -50., -50.]),  # base angular velocity
-                -50. * np.ones(self.num_joints)  # joint velocity
+                -50. * np.ones(self.num_joints),  # joint velocity
+                
+                np.array([-20., 0., -20.]),  # lf pos 
+                np.array([-20., 0., -20.]),  # rf pos
+                np.array([-20., 0., -20.]),  # lh pos 
+                np.array([-20., 0., -20.]),  # rh pos
+
+                # np.float64(0.0),               # simulation_time
+                np.float64(0.0)                # motion phase
             ), axis=None)
 
             self.observation_high = np.concatenate((
                 np.array([20., 5., 20.]),  # base position: x = left, y = up, z = forward
-                np.array([np.pi, np.pi, np.pi]),  # base orientation (yaw, pitch, roll)
+                np.array([1, 1, 1]),  # base orientation quaternion (x, y, z, (w))
                 self.joint_angle_limit_high + 0.1 * np.ones(self.num_joints),  # joint position
                 np.array([50., 50., 50.]),  # base linear velocity
                 np.array([50., 50., 50.]),  # base angular velocity
-                50. * np.ones(self.num_joints)  # joint velocity
+                50. * np.ones(self.num_joints),  # joint velocity
+
+                np.array([20., 5., 20.]),  # lf pos 
+                np.array([20., 5., 20.]),  # rf pos
+                np.array([20., 5., 20.]),  # lh pos 
+                np.array([20., 5., 20.]),  # rh pos
+
+                # np.inf,                      # simulation_time
+                np.float64(1.0)              # motion phase
             ), axis=None)
 
             self.default_obs = np.concatenate((
                 np.array([0., self.base_height_default, 0.]),  # base position: x = left, y = up, z = forward
-                np.array([0., 0., 0.]),  # base orientation (yaw, pitch, roll)
+                np.array([0., 0., 0.]),  # base orientation quaternion (x, y, z, (w))
                 self.joint_angle_default,  # joint position
                 np.array([0., 0., 0.]),  # base linear velocity
                 np.array([0., 0., 0.]),  # base angular velocity
-                np.zeros(self.num_joints)  # joint velocity
+                np.zeros(self.num_joints),  # joint velocity
+
+                np.array([0., 0., 0.]),  # lf pos 
+                np.array([0., 0., 0.]),  # rf pos
+                np.array([0., 0., 0.]),  # lh pos 
+                np.array([0., 0., 0.]),  # rh pos
+
+                # np.float64(0.0),          # simulation_time
+                np.float64(0.0)           # motion phase
             ), axis=None)
 
         else:
@@ -84,7 +108,15 @@ class PylocoEnv(gym.Env):
                 self.joint_angle_limit_low - 0.1 * np.ones(self.num_joints),  # joint position
                 np.array([-50., -50., -50.]),  # base linear velocity
                 np.array([-50., -50., -50.]),  # base angular velocity
-                -50. * np.ones(self.num_joints)  # joint velocity
+                -50. * np.ones(self.num_joints),  # joint velocity
+
+                np.array([-20., 0., -20.]),  # lf pos 
+                np.array([-20., 0., -20.]),  # rf pos
+                np.array([-20., 0., -20.]),  # lh pos 
+                np.array([-20., 0., -20.]),  # rh pos
+
+                # np.float64(0.0),          # simulation_time
+                np.float64(0.0)           # motion phase
             ), axis=None)
 
             self.observation_high = np.concatenate((
@@ -93,7 +125,15 @@ class PylocoEnv(gym.Env):
                 self.joint_angle_limit_high + 0.1 * np.ones(self.num_joints),  # joint position
                 np.array([50., 50., 50.]),  # base linear velocity
                 np.array([50., 50., 50.]),  # base angular velocity
-                50. * np.ones(self.num_joints)  # joint velocity
+                50. * np.ones(self.num_joints),  # joint velocity'
+
+                np.array([20., 5., 20.]),  # lf pos 
+                np.array([20., 5., 20.]),  # rf pos
+                np.array([20., 5., 20.]),  # lh pos 
+                np.array([20., 5., 20.]),  # rh pos
+
+                # np.inf,                      # simulation_time
+                np.float64(1.0)              # motion phase
             ), axis=None)
 
             self.default_obs = np.concatenate((
@@ -102,7 +142,15 @@ class PylocoEnv(gym.Env):
                 self.joint_angle_default,  # joint position
                 np.array([0., 0., 0.]),  # base linear velocity
                 np.array([0., 0., 0.]),  # base angular velocity
-                np.zeros(self.num_joints)  # joint velocity
+                np.zeros(self.num_joints),  # joint velocity
+
+                np.array([0., 0., 0.]),  # lf pos 
+                np.array([0., 0., 0.]),  # rf pos
+                np.array([0., 0., 0.]),  # lh pos 
+                np.array([0., 0., 0.]),  # rh pos
+
+                # np.float64(0.0),          # simulation_time
+                np.float64(0.0)           # motion phase
             ), axis=None)
 
         self.observation_space = spaces.Box(
@@ -130,7 +178,7 @@ class PylocoEnv(gym.Env):
         base_height = observation[1] if self.is_obs_fullstate else observation[0]
 
         # early termination
-        if base_height < (self.base_height_default / 2) \
+        if base_height < (self.base_height_default / 3) \
                 or (not self.observation_space.contains(observation)) \
                 or self._sim.is_robot_collapsed():
             if not self.observation_space.contains(observation):
@@ -148,7 +196,7 @@ class PylocoEnv(gym.Env):
             terminated = True
             truncated = False
 
-        elif self.current_step > self.max_episode_steps:
+        elif self.current_step >= self.max_episode_steps:
             term_info = "reached max episode steps!"
             terminated = False
             truncated = True
@@ -196,9 +244,29 @@ class PylocoEnv(gym.Env):
         q = self._sim.get_q()
         qdot = self._sim.get_qdot()
         if self.is_obs_fullstate:
+            ori = self._sim.get_root_ori()
+            # we only store the x y z from [x,y,z,w], 
+            # when we need that w, just use x^2+y^2+z^2+w^2 = 1
+            q[3:6] = ori[0:3] 
             obs = np.concatenate((q, qdot), axis=None)
         else:
             obs = self.get_reduced_obs(q, qdot)
+
+        # add end_effector pos
+        end_effector = self.get_feet_status()
+        lfoot_pos = end_effector.pos[0]
+        lhand_pos = end_effector.pos[1]
+        rfoot_pos = end_effector.pos[2]
+        rhand_pos = end_effector.pos[3]
+
+        obs = np.concatenate((obs, lfoot_pos, rfoot_pos, lhand_pos, rhand_pos), axis=None)
+
+        # add simulation time
+        now_time = self._sim.get_time_stamp()
+        data_time = now_time * self.clips_play_speed
+        now_phase, _ = np.modf(data_time/self.motion.duration)
+        obs = np.concatenate((obs, now_phase), axis=None)
+
         return obs
 
     def get_reduced_obs(self, q, qdot):
@@ -226,12 +294,56 @@ class PylocoEnv(gym.Env):
 
     def scale_action(self, action):
         # the action space now doesn't fill the joint limits due to asymmetry
+
         return np.minimum(
             np.maximum(action * self.joint_scale_factors + self.joint_angle_default, self.joint_angle_limit_low),
             self.joint_angle_limit_high)
         # return action * self.joint_scale_factors + (self.joint_angle_limit_low + self.joint_angle_limit_high) / 2
 
+    def get_initial_state(self, initial_time):
+        # Get desired root state, joint state according to phase
+        now_t = initial_time
 
+        # Load retargeted data
+        res = self.lerp.eval(now_t)
+        assert res is not None
+        sample, kf = res
+        sample_retarget = self.adapter.adapt(sample, kf)  # type: ignore # data after retargeting
+        
+        # sample = self.motion_lerp.eval(now_t)  # original data for fk calculation
+        
+        # motion_clips_frame = np.concatenate([[0],sample.q])
+        # self.fk.load_motion_clip_frame(motion_clips_frame)
+        # end_effectors_pos = self.fk.get_end_effectors_world_coordinates()
+        # x_pos = end_effectors_pos[:,0].copy()
+        # end_effectors_pos[:,2] = x_pos
+        # end_effectors_pos[:,1] -= 0.07
+
+        # q_desired = self._sim.get_ik_solver_q(sample_retarget.q,
+        #                                       end_effectors_pos[0,:],
+        #                                       end_effectors_pos[1,:],
+        #                                       end_effectors_pos[2,:],
+        #                                       end_effectors_pos[3,:])
+        
+        q_reset = sample_retarget.q
+        qdot_reset = sample_retarget.qdot
+        qdot_reset = qdot_reset * self.clips_play_speed
+        # qdot_reset = np.zeros(len(self.joint_angle_default) + 6)
+        
+        # for debug useage
+        # q_reset = np.zeros(len(self.joint_angle_default) + 6)
+        # q_reset[0:3] = np.array([0,0.9,0]) 
+        # q_reset[3:6] = np.array([0,0,0])
+        # qdot_reset = np.zeros(len(self.joint_angle_default) + 6)
+        # qdot_reset[0:3] = np.array([0,0,0])
+        # qdot_reset[3:6] = np.array([0,0,0]) # angular velocity: [Y, X, Z]
+
+        return q_reset, qdot_reset
+
+    def sample_initial_state(self):
+        # Random sample phase from [0,1)
+        phase, _ = np.modf(np.random.gamma(1,3)/10.0)
+        return phase
 
     def get_feet_status(self):
         status = FeetStatus()

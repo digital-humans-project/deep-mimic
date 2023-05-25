@@ -67,3 +67,19 @@ for t in np.linspace(0, 10, 1000):
         break
     print(sample.t, sample.q)
 ```
+
+### Loop Dataset
+
+Loop dataset allows to loop over a keyframe dataset for a certain number of times. The usage is simple as follows:
+
+```python
+dataset = DeepMimicMotion("./data/deepmimic/motions/humanoid3d_walk.txt")
+loop = LoopKeyframeMotionDataset(dataset, num_loop=2, track_fields=[DeepMimicMotionDataFieldNames.ROOT_POS])
+lerp = LerpMotionDataset(loop)
+
+for t in np.linspace(0, 10, 1000):
+    s = lerp.eval(t)
+    if s is None:
+        break
+    print(t, s.phase, s.q, s.qdot, s.q_fields.root_pos)
+```
