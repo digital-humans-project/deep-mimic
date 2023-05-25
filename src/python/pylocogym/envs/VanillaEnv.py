@@ -53,6 +53,8 @@ class VanillaEnv(PylocoEnv):
 
         self.reward_params = reward_params
         self.sum_episode_reward_terms = {}
+        self.sum_episode_err_terms = {}
+
         # self.action_buffer = np.zeros(self.num_joints * 3)  # history of actions [current, previous, past previous]
 
         self.rng = np.random.default_rng(env_params.get("seed", 1))  # create a local random number generator with seed
@@ -146,6 +148,7 @@ class VanillaEnv(PylocoEnv):
 
         observation = self.get_obs()
         self.sum_episode_reward_terms = {}
+        self.sum_episode_err_terms = {}
         # self.action_buffer = np.concatenate(
         #     (self.joint_angle_default, self.joint_angle_default, self.joint_angle_default), axis=None
         # )
@@ -198,7 +201,7 @@ class VanillaEnv(PylocoEnv):
         # sample_retarget.q = q_desired
 
         # compute reward
-        reward, reward_info = self.reward_utils.compute_reward(
+        reward, reward_info, err_info = self.reward_utils.compute_reward(
             observation,
             self.is_obs_fullstate,
             sample_retarget,
@@ -207,6 +210,10 @@ class VanillaEnv(PylocoEnv):
 
         self.sum_episode_reward_terms = {
             key: self.sum_episode_reward_terms.get(key, 0) + reward_info.get(key, 0) for key in reward_info.keys()
+        }
+
+        self.sum_episode_err_terms = {
+            key: self.sum_episode_err_terms.get(key, 0) + err_info.get(key, 0) for key in err_info.keys()
         }
 
         # check if episode is done
@@ -231,7 +238,11 @@ class VanillaEnv(PylocoEnv):
             mean_episode_reward_terms = {
                 key: self.sum_episode_reward_terms.get(key, 0) / self.current_step for key in reward_info.keys()
             }
+            mean_episode_err_terms = {
+                key: self.sum_episode_err_terms.get(key, 0) / self.current_step for key in err_info.keys()
+            }
             info["mean_episode_reward_terms"] = mean_episode_reward_terms
+            info["mean_episode_err_terms"] = mean_episode_err_terms
 
         return observation, reward, done, info
 
