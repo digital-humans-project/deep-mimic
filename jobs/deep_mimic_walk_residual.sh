@@ -11,4 +11,4 @@
 
 source scripts/setup.sh
 
-xvfb-run -a --server-args="-screen 0 480x480x24" python src/python/main.py -wb -vr -c bob_env_walk.json
+xvfb-run -a --server-args="-screen 0 480x480x24" python src/python/main.py -wb -vr -c bob_env_walk_residual.json
