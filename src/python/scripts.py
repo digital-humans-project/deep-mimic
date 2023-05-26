@@ -9,7 +9,7 @@ from stable_baselines3.common.logger import configure
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv, VecNormalize, VecVideoRecorder
 from pylocogym.callbacks import RecordEvalCallback, TensorboardCallback, CheckpointSaveCallback
-from pylocogym.algorithms import CustomPPO
+from pylocogym.algorithms import CustomPPO, CustomActorCriticPolicy
 
 
 def manage_save_path(log_dir, name):
@@ -177,7 +177,8 @@ def train(params,
     )
 
     model = CustomPPO(
-        'MlpPolicy', env,
+        CustomActorCriticPolicy,
+        env,
         learning_rate=hyp_params['learning_rate'],
         batch_size=hyp_params['batch_size'],
         n_epochs=hyp_params['n_epochs'],

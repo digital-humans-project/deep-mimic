@@ -132,11 +132,11 @@ class VanillaEnv(PylocoEnv):
 
         # self.phase = self.sample_initial_state()
         if self.enable_rand_init:
-            self.phase = self.sample_initial_state()
-
+            self.initial_time = np.random.uniform(0, self.motion.duration-self.cnt_timestep_size)
+            self.phase = self.initial_time / self.motion.duration
         else:
             self.phase = phase
-        self.initial_time = self.phase * self.motion.duration # data scale
+            self.initial_time = self.phase * self.motion.duration # data scale
 
         total_duration = self.clips_repeat_num * self.motion.duration # data
         data_duration = total_duration - self.initial_time
@@ -145,6 +145,7 @@ class VanillaEnv(PylocoEnv):
 
         # Maximum episdode step
         self.max_episode_steps = int(sim_duration / self.cnt_timestep_size)
+        assert self.max_episode_steps > 0, "max_episode_steps should be positive"
 
         (q_reset, qdot_reset) = self.get_initial_state(self.initial_time)
         self._sim.reset(q_reset, qdot_reset, self.initial_time / self.clips_play_speed)  # q, qdot include root's state(pos,ori,vel,angular vel)
