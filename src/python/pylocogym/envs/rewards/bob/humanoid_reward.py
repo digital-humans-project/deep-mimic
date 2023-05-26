@@ -103,10 +103,15 @@ class Reward:
         # smoothness2_reward = weight_smoothness2 * np.exp(-np.sum(rest_joints_ddot**2)/(2.0*(N-N_mimic)*sigma_smoothness2**2))
 
 
-        diff = np.sum(action**2)
+        motion_joints = sample_retarget.q_fields.joints
+        motion_joints_dot = sample_retarget.qdot_fields.joints
+        # Motion imitation reward 
+        joint_angles = observation.joint_angles[list(self.mimic_joints_index)]
+        desired_angles = motion_joints[list(self.mimic_joints_index)]
+        diff = np.sum((joint_angles - desired_angles)**2)
         weight_joints = params.get("weight_joints", 0)
         sigma_joints = params.get("sigma_joints", 0)
-        joints_reward = weight_joints * np.exp(-diff/(2.0*num_joints*sigma_joints**2))
+        joints_reward = weight_joints * np.exp(-diff/(2.0*N_mimic*sigma_joints**2))
         joints_err = diff
 
         # Leg reawrd (waiting for the end effector reward to take the place of it)
@@ -132,12 +137,13 @@ class Reward:
         end_effectors_err = sum_diff_square
 
         # Joint velocities reward
-        # joint_velocities = observation.joint_vel[list(self.mimic_joints_index)]
-        # desired_velocities = motion_joints_dot[list(self.mimic_joints_index)]
-        # diff = joint_velocities - desired_velocities
-        # weight_joints_vel = params.get("weight_joints_vel", 0)
-        # sigma_joints_vel = params.get("sigma_joints_vel", 0)
-        # joints_vel_reward = weight_joints_vel * np.exp(-np.sum(np.square(diff))/(2.0*N_mimic*sigma_joints_vel**2))
+        joint_velocities = observation.joint_vel[list(self.mimic_joints_index)]
+        desired_velocities = motion_joints_dot[list(self.mimic_joints_index)]
+        diff = np.sum((joint_velocities - desired_velocities)**2)
+        weight_joints_vel = params.get("weight_joints_vel", 0)
+        sigma_joints_vel = params.get("sigma_joints_vel", 0)
+        joints_vel_reward = weight_joints_vel * np.exp(-diff/(2.0*N_mimic*sigma_joints_vel**2))
+        joints_vel_err = diff
 
         # =============
         # sum up rewards
@@ -150,6 +156,7 @@ class Reward:
                 + height_reward     \
                 + root_ori_reward   \
                 + joints_reward     \
+                + joints_vel_reward \
                 + end_effectors_reward
 
         info = {
@@ -163,7 +170,7 @@ class Reward:
 
             "joints_reward": joints_reward,
 
-            # "joints_vel_reward": joints_vel_reward,
+            "joints_vel_reward": joints_vel_reward,
 
             # "leg_reward": leg_reward,
 
@@ -176,6 +183,7 @@ class Reward:
             "root_ori_err": root_ori_err,
             "joints_err": joints_err,
             "end_effectors_err": end_effectors_err,
+            "joints_vel_err": joints_vel_err
         }
 
         return reward, info, err
