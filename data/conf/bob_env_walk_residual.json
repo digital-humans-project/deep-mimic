@@ -2,7 +2,11 @@
   "env_id": "PylocoVanilla-v0",
   "motion_file": "humanoid3d_walk.txt",
   "train_hyp_params": {
-    "learning_rate": 3e-4,
+    "learning_rate": {
+      "policy": 5e-5,
+      "value": 1e-2,
+      "log_std": 3e-4
+    },
     "batch_size": 256,
     "n_epochs": 10,
     "num_envs": 20,
@@ -62,7 +66,7 @@
     "weight_early_penalty": 0.0
   },
   "model_params": {
-    "log_std_init": -3.0,
+    "log_std_init": -2.0,
     "activation_fn": "ReLu",
     "network_architecture": {
       "pi": [
