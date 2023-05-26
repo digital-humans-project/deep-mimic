@@ -297,8 +297,8 @@ RB
 	collisionSphere 0.03 -0.02 -0.07 0.01
 	collisionSphere -0.03 -0.02 -0.07 0.01
 
-	collisionSphere 0.03 -0.02 0.05 0.01
-	collisionSphere -0.03 -0.02 0.05 0.01
+	collisionSphere 0.03 -0.02 0.07 0.01
+	collisionSphere -0.03 -0.02 0.07 0.01
 
 	endEffector 0 -0.02 0.05 0.001
 
@@ -311,8 +311,8 @@ RB
 	mass	0.13348388671875					
 	moi	0.0000549936667084694	0.0000703918933868408	0.0000549936667084694	0	0	0	
 
-	collisionSphere 0.03 0 -0.03 0.01
-	collisionSphere -0.03 0 -0.03 0.01
+	collisionSphere 0.03 0 0.015 0.01
+	collisionSphere -0.03 0 0.015 0.01
 
 	endEffector -0.03 0 0.015 0.01
 
@@ -372,8 +372,8 @@ RB
 	collisionSphere 0.03 -0.02 -0.07 0.01
 	collisionSphere -0.03 -0.02 -0.07 0.01
 
-	collisionSphere 0.03 -0.02 0.05 0.01
-	collisionSphere -0.03 -0.02 0.05 0.01
+	collisionSphere 0.03 -0.02 0.07 0.01
+	collisionSphere -0.03 -0.02 0.07 0.01
 
     endEffector 0 -0.02 0.05 0.001
 /End_RB
@@ -386,7 +386,7 @@ RB
 	moi	0.0000549936667084694	0.0000703918933868408	0.0000549936667084694	0	0	0
 
 	collisionSphere 0.03 0 0.015 0.01
-	collisionSphere -0.03 0 -0.03 0.01
+	collisionSphere -0.03 0 0.015 0.01
     endEffector -0.03 0 -0.03 0.01
 
 /End_RB
