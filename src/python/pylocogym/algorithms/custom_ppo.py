@@ -9,7 +9,7 @@ from torch.nn import functional as F
 
 from stable_baselines3 import PPO
 from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback
-from stable_baselines3.common.utils import safe_mean, explained_variance
+from stable_baselines3.common.utils import safe_mean, explained_variance, get_schedule_fn
 
 
 class CustomPPO(PPO):
@@ -42,6 +42,19 @@ class CustomPPO(PPO):
             policy_kwargs=policy_kwargs,
             seed=seed,
         )
+
+    def _setup_lr_schedule(self) -> None:
+        self.lr_schedule = {k: get_schedule_fn(v) for k, v in self.learning_rate.items()}
+
+    def _update_learning_rate(self, optimizers) -> None:
+        if not isinstance(optimizers, list):
+            optimizers = [optimizers]
+        for optimizer in optimizers:
+            for param_group in optimizer.param_groups:
+                name = param_group["name"]
+                learning_rate = self.lr_schedule[name](self._current_progress_remaining)
+                param_group["lr"] = learning_rate
+                self.logger.record(f"train/learning_rate_{name}", learning_rate)
 
     def train(self) -> None:
         """
