@@ -18,7 +18,7 @@ def test(params, motion_clips_path=None, urdf_path = None):
 
     max_episode_steps = hyp_params.get('max_episode_steps', 5000)
     seed = hyp_params.get("seed", 313)
-    env_kwargs = {"max_episode_steps": max_episode_steps, "env_params": env_params, "reward_params": reward_params}
+    env_kwargs = {"max_episode_steps": max_episode_steps, "env_params": env_params, "reward_params": reward_params,"enable_rand_init": False}
 
     if motion_clips_path is not None:
         reward_params["motion_clips_file_path"] = motion_clips_path  # add reward path to reward params
@@ -48,15 +48,17 @@ def test(params, motion_clips_path=None, urdf_path = None):
     for ep in range(episodes):
         eval_env.reset()
         done = False
-        t = eval_env.envs[0].phase*eval_env.envs[0].dataset.duration
+        t = eval_env.envs[0].phase*eval_env.envs[0].motion.duration
         # t2 = eval_env.envs[1].phase*eval_env.envs[1].dataset.duration
         while not done:
             eval_env.envs[0].render("human")
-            action = eval_env.envs[0].lerp.eval(t).q[6:]
+            sample, kf = eval_env.envs[0].lerp.eval(t)
+            action = eval_env.envs[0].adapter.adapt(sample, kf).q[6:]
+            # action = eval_env.envs[0].lerp.eval(t).q[6:]
             obs, reward, done, info = eval_env.envs[0].step(action)
             print("now time, now phase", obs[-2],obs[-1])
             t += 1.0/(frame_rate/eval_env.envs[0].clips_play_speed)
-            # time.sleep(0.01)
+            time.sleep(0.01)
     eval_env.close()
 
 def play_motion(params, motion_clips_path=None, urdf_path = None):
