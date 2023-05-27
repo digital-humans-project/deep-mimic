@@ -53,6 +53,8 @@ class VanillaEnv(PylocoEnv):
 
         self.reward_params = reward_params
         self.sum_episode_reward_terms = {}
+        self.sum_episode_err_terms = {}
+
         # self.action_buffer = np.zeros(self.num_joints * 3)  # history of actions [current, previous, past previous]
 
         self.rng = np.random.default_rng(env_params.get("seed", 1))  # create a local random number generator with seed
@@ -126,11 +128,11 @@ class VanillaEnv(PylocoEnv):
 
         # self.phase = self.sample_initial_state()
         if self.enable_rand_init:
-            self.phase = self.sample_initial_state()
-
+            self.initial_time = np.random.uniform(0, self.motion.duration-self.cnt_timestep_size)
+            self.phase = self.initial_time / self.motion.duration
         else:
             self.phase = phase
-        self.initial_time = self.phase * self.motion.duration # data scale
+            self.initial_time = self.phase * self.motion.duration # data scale
 
         total_duration = self.clips_repeat_num * self.motion.duration # data
         data_duration = total_duration - self.initial_time
@@ -139,6 +141,7 @@ class VanillaEnv(PylocoEnv):
 
         # Maximum episdode step
         self.max_episode_steps = int(sim_duration / self.cnt_timestep_size)
+        assert self.max_episode_steps > 0, "max_episode_steps should be positive"
 
         (q_reset, qdot_reset) = self.get_initial_state(self.initial_time)
         self._sim.reset(q_reset, qdot_reset, self.initial_time / self.clips_play_speed)  # q, qdot include root's state(pos,ori,vel,angular vel)
@@ -146,6 +149,7 @@ class VanillaEnv(PylocoEnv):
 
         observation = self.get_obs()
         self.sum_episode_reward_terms = {}
+        self.sum_episode_err_terms = {}
         # self.action_buffer = np.concatenate(
         #     (self.joint_angle_default, self.joint_angle_default, self.joint_angle_default), axis=None
         # )
@@ -177,7 +181,7 @@ class VanillaEnv(PylocoEnv):
         """ Forwards and Inverse kinematics """
         # Load retargeted data
         res = self.lerp.eval(now_t)
-        assert res is not None
+        assert res is not None, "lerp.eval(now_t) is None"
         sample, kf = res
         sample_retarget = self.adapter.adapt(sample, kf)  # type: ignore # data after retargeting
 
@@ -198,7 +202,7 @@ class VanillaEnv(PylocoEnv):
         # sample_retarget.q = q_desired
 
         # compute reward
-        reward, reward_info = self.reward_utils.compute_reward(
+        reward, reward_info, err_info = self.reward_utils.compute_reward(
             observation,
             self.is_obs_fullstate,
             sample_retarget,
@@ -207,6 +211,10 @@ class VanillaEnv(PylocoEnv):
 
         self.sum_episode_reward_terms = {
             key: self.sum_episode_reward_terms.get(key, 0) + reward_info.get(key, 0) for key in reward_info.keys()
+        }
+
+        self.sum_episode_err_terms = {
+            key: self.sum_episode_err_terms.get(key, 0) + err_info.get(key, 0) for key in err_info.keys()
         }
 
         # check if episode is done
@@ -231,7 +239,11 @@ class VanillaEnv(PylocoEnv):
             mean_episode_reward_terms = {
                 key: self.sum_episode_reward_terms.get(key, 0) / self.current_step for key in reward_info.keys()
             }
+            mean_episode_err_terms = {
+                key: self.sum_episode_err_terms.get(key, 0) / self.current_step for key in err_info.keys()
+            }
             info["mean_episode_reward_terms"] = mean_episode_reward_terms
+            info["mean_episode_err_terms"] = mean_episode_err_terms
 
         return observation, reward, done, info
 
