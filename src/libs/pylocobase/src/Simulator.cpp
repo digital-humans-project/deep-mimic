@@ -187,40 +187,169 @@ crl::dVector Simulator::getIkSolverQ(const crl::dVector &q_raw,
     crl::loco::GCRR gcrr(robot_);
     
     const crl::dVector eePosTarget[4]{lf_pos,rf_pos,lh_pos,rh_pos};
+    crl::Quaternion R_desired[4];
     crl::dVector q = q_raw, q_backup;
+    uint k;
+    double max_err = 0;
+
     gcrr.getQ(q_backup); // store the initial q
-
-    for (uint i = 0; i < 10; i++) 
+    gcrr.setQ(q);
+    gcrr.syncRobotStateWithGeneralizedCoordinates();
+    std::vector<int> ind{1,2,4,5,7,8,10,11,13,14,16,17,27,28,30,31,33,34,36,37,38,40,42,39,41,43};
+    Eigen::DiagonalMatrix<double,6> W(0.1,1,0.1,0.3,0.3,0.3);
+    for (int i = 0; i < robot_->getLimbCount(); i++) 
+        R_desired[i] = gcrr.getOrientationFor(robot_->getLimb(i)->eeRB);
+    
+    // Weighted equal priority version
+    for (k = 0; k < 50; k++) 
     {
-        if(i > 0)
-            gcrr.getQ(q);
-
         crl::dVector deltaq(q.size() - 6);
         deltaq.setZero();
 
-        crl::Matrix J, J_pusedo_inv;
+        crl::Matrix J,J2,J_pusedo_inv;
         crl::P3D target, eePos, p_FK;
         std::shared_ptr<crl::loco::RB> rb;
+        crl::V3D err_pos, err_angular;
+        crl::dVector err(6,1);
+        crl::Quaternion R_now;
+        max_err = 0;
 
         for (int i = 0; i < robot_->getLimbCount(); i++) {
-            
+
             eePos = robot_->getLimb(i)->ee->endEffectorOffset;
             rb = (robot_->getLimb(i)->eeRB);
             target = crl::getP3D(eePosTarget[i]);
 
+            // Position Jacobian 
             gcrr.compute_dpdq(eePos, rb, J);
             J = J.block(0,6,3,q.size() - 6).eval();
+            J = J(Eigen::all,ind);
 
-            J_pusedo_inv = (J.transpose()*J).ldlt().solve(J.transpose());
-            p_FK = robot_->getLimb(i)->getEEWorldPos();
+            // Angular Jacobian
+            gcrr.compute_angular_jacobian(rb, J2);
+            J2 = J2.block(0,6,3,q.size() - 6).eval();
+            J2 = J2(Eigen::all,ind);
+            crl::Matrix J_total(J.rows() + J2.rows(), J.cols());
+            J_total << J, J2;
+            J_pusedo_inv = (J_total.transpose()*W*J_total).ldlt().solve(J_total.transpose()*W);
             
-            deltaq += J_pusedo_inv*crl::V3D(p_FK,target);
+            // Position error
+            p_FK = robot_->getLimb(i)->getEEWorldPos();
+            err_pos = (crl::V3D(p_FK,target));
+            
+            // Angular error
+            R_now = gcrr.getOrientationFor(rb);
+            crl::Quaternion rotate = R_desired[i] * R_now.inverse();
+            crl::AngleAxisd aa(rotate);
+            err_angular = aa.axis().normalized();
+            double angle = aa.angle();
+            err_angular *= angle;
+
+            err << err_pos, err_angular;
+            deltaq(ind) += J_pusedo_inv*err;
+            
+            if (max_err < err_pos.norm())
+                max_err = err_pos.norm();
+            
         } 
-        q.tail(q.size() - 6) += deltaq;
+        if(max_err < 0.02) 
+            break;
+        // deltaq(ind) *= 0;
+        q.tail(q.size() - 6) += 0.2*deltaq;
         gcrr.setQ(q);
+        gcrr.syncRobotStateWithGeneralizedCoordinates();
     }
+    
+    // std::cout << k <<" aver: "<<max_err<<std::endl;
     gcrr.setQ(q_backup);
+    gcrr.syncRobotStateWithGeneralizedCoordinates();
     return q;
+
+    // prioritization version
+    // for (k = 0; k < 50; k++) 
+    // {
+    //     crl::dVector deltaq(q.size() - 6);
+    //     deltaq.setZero();
+
+    //     crl::Matrix J,J2,J_pusedo_inv,Jy, Jx, Jz, Jxz_pusedo_inv;
+    //     crl::P3D target, eePos, p_FK;
+    //     std::shared_ptr<crl::loco::RB> rb;
+    //     crl::V3D err_angular;
+    //     crl::dVector err(4,1), err2(2,1);
+    //     crl::Quaternion R_now;
+    //     double err_x, err_y, err_z;
+    //     max_err = 0;
+
+    //     for (int i = 0; i < robot_->getLimbCount(); i++) {
+
+    //         eePos = robot_->getLimb(i)->ee->endEffectorOffset;
+    //         rb = (robot_->getLimb(i)->eeRB);
+    //         target = crl::getP3D(eePosTarget[i]);
+
+    //         // Position Jacobian 
+    //         gcrr.compute_dpdq(eePos, rb, J);
+    //         J = J.block(0,6,3,q.size() - 6).eval();
+    //         Jx = J.row(0);
+    //         Jy = J.row(1);
+    //         Jz = J.row(2);
+            
+    //         Jx = Jx(Eigen::all,ind);
+    //         Jy = Jy(Eigen::all,ind);
+    //         Jz = Jz(Eigen::all,ind);
+            
+    //         // Angular Jacobian
+    //         gcrr.compute_angular_jacobian(rb, J2);
+    //         J2 = J2.block(0,6,3,q.size() - 6).eval();
+    //         J2 = J2(Eigen::all,ind);
+    //         crl::Matrix J_total(Jy.rows() + J2.rows(), Jy.cols());
+
+    //         J_total << Jy, J2;
+
+    //         J_pusedo_inv = (J_total.transpose()*J_total).ldlt().solve(J_total.transpose());
+            
+    //         crl::Matrix Jxz(Jx.rows() + Jz.rows(), Jx.cols());
+    //         Jxz << Jx,Jz;
+
+            
+    //         crl::Matrix I(J_total.cols(), J_total.cols()); 
+    //         I.setIdentity();
+    //         crl::Matrix N1;
+    //         N1 = I - J_pusedo_inv*J_total;
+            
+
+    //         crl::Matrix Temp = Jxz * N1;
+    //         Jxz_pusedo_inv = (Temp.transpose()*Temp).ldlt().solve(Temp.transpose());
+            
+    //         // Position error
+    //         p_FK = robot_->getLimb(i)->getEEWorldPos();
+    //         err_y = (crl::V3D(p_FK,target))[1];
+    //         err_x = (crl::V3D(p_FK,target))[0];
+    //         err_z = (crl::V3D(p_FK,target))[2];
+
+    //         // Angular error
+    //         R_now = gcrr.getOrientationFor(rb);
+    //         crl::Quaternion rotate = R_desired[i] * R_now.inverse();
+    //         crl::AngleAxisd aa(rotate);
+    //         err_angular = aa.axis().normalized();
+    //         double angle = aa.angle();
+    //         err_angular *= angle;
+
+    //         err << err_y, err_angular;
+    //         err2 << err_x, err_z;
+            
+    //         deltaq(ind) += J_pusedo_inv*err + N1*Jxz_pusedo_inv*(err2 - Jxz*(J_pusedo_inv*err));
+            
+    //         if (max_err < err_y)
+    //             max_err = err_y;
+            
+    //     } 
+    //     if(max_err < 0.02) 
+    //         break;
+    //     // deltaq(ind) *= 0;
+    //     q.tail(q.size() - 6) += 0.3*deltaq;
+    //     gcrr.setQ(q);
+    //     gcrr.syncRobotStateWithGeneralizedCoordinates();
+    // }
 }
 
 
