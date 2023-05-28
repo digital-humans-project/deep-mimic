@@ -1,5 +1,6 @@
 import argparse
 import json
+import logging
 import os
 
 from tqdm import tqdm
@@ -11,6 +12,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import DummyVecEnv
 
+logging.basicConfig(level=logging.INFO)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config")
@@ -56,9 +58,9 @@ if __name__ == "__main__":
         action, _ = model.predict(obs)
         obs, reward, done, info = eval_env.step(action)
         eval_env.render()
-    input_fps = round(1.0 / env_kwargs["time_step"])
+    input_fps = env_params["control_rate"]
 
-    export_dir = env_params["control_rate"]
+    export_dir = export_params["out_dir"]
     fps = export_params["fps"]
     eval_env.save_videos(export_dir, export_params.get("input_fps", input_fps), fps)
     eval_env.close()

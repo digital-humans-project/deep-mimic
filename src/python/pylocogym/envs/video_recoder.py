@@ -33,11 +33,14 @@ class VecVideoRecorder(VecEnvWrapper):
             buffer = self.frame_buffers[i]
             buffer.append(frame)
             if done:
+                total_rew = np.sum(rew)
                 if len(self.best_videos) == self.topk:
-                    rew, _ = heapq.heappushpop(self.best_videos, (np.sum(rew), buffer))
-                    logger.info(f"Dropped video with reward {rew}")
+                    if total_rew > self.best_videos[0][0]:
+                        rew, _ = heapq.heappushpop(self.best_videos, (total_rew, buffer))
+                        logger.info(f"Dropped video with reward {rew}")
                 else:
-                    heapq.heappush(self.best_videos, (np.sum(rew), buffer))
+                    heapq.heappush(self.best_videos, (total_rew, buffer))
+                logger.info(f"New video with reward {total_rew}, length = {len(buffer)}")
                 self.frame_buffers[i] = []
                 new_obs = env.reset()
                 obs[i] = new_obs
@@ -46,9 +49,9 @@ class VecVideoRecorder(VecEnvWrapper):
     def save_videos(self, save_path: Union[str, Path], fps: int, output_fps: int) -> None:
         save_path = Path(save_path)
         save_path.mkdir(exist_ok=True, parents=True)
-        for i, (_, buffer) in enumerate(self.best_videos):
+        for i, (rew, buffer) in enumerate(self.best_videos):
             enc = ImageEncoder(
-                str(save_path / f"video_{i}.mp4"),
+                str(save_path / f"video_{i}_rew_{rew:02f}.mp4"),
                 frame_shape=buffer[0].shape,
                 frames_per_sec=fps,
                 output_frames_per_sec=output_fps,
