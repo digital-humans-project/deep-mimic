@@ -54,14 +54,14 @@ class PylocoEnv(gym.Env):
                 np.array([-20., 0., -20.]),  # base position: x = left, y = up, z = forward
                 np.array([-1, -1, -1]),  # base orientation quaternion (x, y, z, (w))
                 self.joint_angle_limit_low - 0.1 * np.ones(self.num_joints),  # joint position
-                np.array([-50., -50., -50.]),  # base linear velocity
-                np.array([-50., -50., -50.]),  # base angular velocity
+                np.array([-100., -100., -100.]),  # base linear velocity
+                np.array([-100., -100., -100.]),  # base angular velocity
                 -50. * np.ones(self.num_joints),  # joint velocity
                 
-                np.array([-20., 0., -20.]),  # lf pos 
-                np.array([-20., 0., -20.]),  # rf pos
-                np.array([-20., 0., -20.]),  # lh pos 
-                np.array([-20., 0., -20.]),  # rh pos
+                np.array([-20., -10., -20.]),  # lf pos 
+                np.array([-20., -10., -20.]),  # rf pos
+                np.array([-20., -10., -20.]),  # lh pos 
+                np.array([-20., -10., -20.]),  # rh pos
 
                 # np.float64(0.0),               # simulation_time
                 np.float64(0.0)                # motion phase
@@ -71,8 +71,8 @@ class PylocoEnv(gym.Env):
                 np.array([20., 5., 20.]),  # base position: x = left, y = up, z = forward
                 np.array([1, 1, 1]),  # base orientation quaternion (x, y, z, (w))
                 self.joint_angle_limit_high + 0.1 * np.ones(self.num_joints),  # joint position
-                np.array([50., 50., 50.]),  # base linear velocity
-                np.array([50., 50., 50.]),  # base angular velocity
+                np.array([100., 100., 100.]),  # base linear velocity
+                np.array([100., 100., 100.]),  # base angular velocity
                 50. * np.ones(self.num_joints),  # joint velocity
 
                 np.array([20., 5., 20.]),  # lf pos 
@@ -106,14 +106,14 @@ class PylocoEnv(gym.Env):
                 0.0,  # base y coordinate (height)
                 np.array([-np.pi, -np.pi]),  # base roll and pitch
                 self.joint_angle_limit_low - 0.1 * np.ones(self.num_joints),  # joint position
-                np.array([-50., -50., -50.]),  # base linear velocity
-                np.array([-50., -50., -50.]),  # base angular velocity
+                np.array([-100., -100., -100.]),  # base linear velocity
+                np.array([-100., -100., -100.]),  # base angular velocity
                 -50. * np.ones(self.num_joints),  # joint velocity
 
-                np.array([-20., 0., -20.]),  # lf pos 
-                np.array([-20., 0., -20.]),  # rf pos
-                np.array([-20., 0., -20.]),  # lh pos 
-                np.array([-20., 0., -20.]),  # rh pos
+                np.array([-20., -10., -20.]),  # lf pos 
+                np.array([-20., -10., -20.]),  # rf pos
+                np.array([-20., -10., -20.]),  # lh pos 
+                np.array([-20., -10., -20.]),  # rh pos
 
                 # np.float64(0.0),          # simulation_time
                 np.float64(0.0)           # motion phase
@@ -123,8 +123,8 @@ class PylocoEnv(gym.Env):
                 5.,  # base y coordinate (height)
                 np.array([np.pi, np.pi]),  # base roll and pitch
                 self.joint_angle_limit_high + 0.1 * np.ones(self.num_joints),  # joint position
-                np.array([50., 50., 50.]),  # base linear velocity
-                np.array([50., 50., 50.]),  # base angular velocity
+                np.array([100., 100., 100.]),  # base linear velocity
+                np.array([100., 100., 100.]),  # base angular velocity
                 50. * np.ones(self.num_joints),  # joint velocity'
 
                 np.array([20., 5., 20.]),  # lf pos 
@@ -178,7 +178,7 @@ class PylocoEnv(gym.Env):
         base_height = observation[1] if self.is_obs_fullstate else observation[0]
 
         # early termination
-        if base_height < (self.base_height_default / 3) \
+        if base_height < (self.base_height_default / 5) \
                 or (not self.observation_space.contains(observation)) \
                 or self._sim.is_robot_collapsed():
             if not self.observation_space.contains(observation):

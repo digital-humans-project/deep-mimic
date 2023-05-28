@@ -119,6 +119,7 @@ class VanillaEnv(PylocoEnv):
         # Forwards Kinematics class
         # self.fk = ForwardKinematics(env_params["urdf_path"])
         self.minimum_height = 0.009
+        self.q_store = None
 
     def reset(self, seed=None, return_info=False, options=None, phase=0):
         # super().reset(seed=seed)  # We need this line to seed self.np_random
@@ -144,6 +145,28 @@ class VanillaEnv(PylocoEnv):
         assert self.max_episode_steps > 0, "max_episode_steps should be positive"
 
         (q_reset, qdot_reset) = self.get_initial_state(self.initial_time)
+        end_effectors_raw = self._sim.get_fk_ee_pos(q_reset)
+        end_effectors_pos = np.array(
+            [end_effectors_raw[0], end_effectors_raw[2], end_effectors_raw[1], end_effectors_raw[3]]
+        )
+
+        use_ik = False
+        for each_pos in end_effectors_pos:
+            if each_pos[1] < self.minimum_height:
+                each_pos[1] = self.minimum_height
+                use_ik = True
+
+        # end_effectors_pos[0][1] += 0.1
+        if use_ik:
+            print("use_inverse_kinematic")
+            if self.q_store is None:
+                self.q_store = q_reset
+            q_ik_init = np.concatenate([q_reset[0:6], 0.5*self.q_store[6:]+0.5*q_reset[6:]])
+            q_reset = self._sim.get_ik_solver_q(q_ik_init,
+                                                end_effectors_pos[0],
+                                                end_effectors_pos[2],
+                                                end_effectors_pos[1],
+                                                end_effectors_pos[3])
         self._sim.reset(q_reset, qdot_reset, self.initial_time / self.clips_play_speed)  # q, qdot include root's state(pos,ori,vel,angular vel)
         # self._sim.reset()
 
@@ -166,7 +189,7 @@ class VanillaEnv(PylocoEnv):
 
         # run simulation
         action_applied = self.scale_action(action)
-        self._sim.step(action_applied)
+        self._sim.step(action)
         observation = self.get_obs()
 
         # update variables
@@ -185,13 +208,6 @@ class VanillaEnv(PylocoEnv):
         sample, kf = res
         sample_retarget = self.adapter.adapt(sample, kf)  # type: ignore # data after retargeting
 
-        # data_joints = sample_retarget.q
-        # q_desired = self._sim.get_ik_solver_q(data_joints,
-        #                                       end_effectors_pos[0,:],
-        #                                       end_effectors_pos[1,:],
-        #                                       end_effectors_pos[2,:],
-        #                                       end_effectors_pos[3,:])
-
         end_effectors_raw = self._sim.get_fk_ee_pos(sample_retarget.q)
         end_effectors_pos = np.array(
             [end_effectors_raw[0], end_effectors_raw[2], end_effectors_raw[1], end_effectors_raw[3]]
@@ -199,7 +215,15 @@ class VanillaEnv(PylocoEnv):
         for each_pos in end_effectors_pos:
             if each_pos[1] < self.minimum_height:
                 each_pos[1] = self.minimum_height
-        # sample_retarget.q = q_desired
+
+        # IK check for joints
+        data_joints = sample_retarget.q
+        q_desired = self._sim.get_ik_solver_q(data_joints,
+                                              end_effectors_pos[0,:],
+                                              end_effectors_pos[2,:],
+                                              end_effectors_pos[1,:],
+                                              end_effectors_pos[3,:])
+        sample_retarget.q = q_desired
 
         # compute reward
         reward, reward_info, err_info = self.reward_utils.compute_reward(

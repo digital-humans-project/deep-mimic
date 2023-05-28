@@ -43,7 +43,7 @@ def test(params, motion_clips_path=None, urdf_path = None):
     # start playing
     # =============
     episodes = 10000
-    frame_rate = 60
+    frame_rate = 59.8
     
     for ep in range(episodes):
         eval_env.reset()
@@ -58,7 +58,7 @@ def test(params, motion_clips_path=None, urdf_path = None):
             obs, reward, done, info = eval_env.envs[0].step(action)
             # print("now time, now phase", obs[-2],obs[-1])
             t += 1.0/(frame_rate/eval_env.envs[0].clips_play_speed)
-            time.sleep(0.01)
+            # time.sleep(0.01)
     eval_env.close()
 
 def play_motion(params, motion_clips_path=None, urdf_path = None):
@@ -109,7 +109,7 @@ def play_motion(params, motion_clips_path=None, urdf_path = None):
         # t2 = eval_env.envs[1].phase*eval_env.envs[1].dataset.duration
         phase = 0
         while phase <= 2:
-            phase = 0.0
+            phase += 0.01
             if phase <= 2: 
                 eval_env.envs[0].reset(phase = phase)
             else:
