@@ -202,6 +202,25 @@ class VanillaEnv(PylocoEnv):
         sample, kf = res
         sample_retarget = self.adapter.adapt(sample, kf)  # type: ignore # data after retargeting
         
+        # IK
+        end_effectors_raw = self._sim.get_fk_ee_pos(sample_retarget.q)
+        end_effectors_pos = np.array(
+            [end_effectors_raw[0], end_effectors_raw[2], end_effectors_raw[1], end_effectors_raw[3]]
+        )
+        for each_pos in end_effectors_pos:
+            if each_pos[1] < self.minimum_height:
+                each_pos[1] = self.minimum_height
+
+        # IK check for joints
+        data_joints = sample_retarget.q
+        q_desired = self._sim.get_ik_solver_q(data_joints,
+                                              end_effectors_pos[0,:],
+                                              end_effectors_pos[2,:],
+                                              end_effectors_pos[1,:],
+                                              end_effectors_pos[3,:])
+        sample_retarget.q = q_desired
+        # End of IK
+        
         # run simulation
         target_act = action * np.pi + sample_retarget.q_fields.joints
         action_applied = np.clip(target_act, self.joint_angle_limit_low, self.joint_angle_limit_high)
@@ -222,23 +241,6 @@ class VanillaEnv(PylocoEnv):
         #                                       end_effectors_pos[1,:],
         #                                       end_effectors_pos[2,:],
         #                                       end_effectors_pos[3,:])
-
-        end_effectors_raw = self._sim.get_fk_ee_pos(sample_retarget.q)
-        end_effectors_pos = np.array(
-            [end_effectors_raw[0], end_effectors_raw[2], end_effectors_raw[1], end_effectors_raw[3]]
-        )
-        for each_pos in end_effectors_pos:
-            if each_pos[1] < self.minimum_height:
-                each_pos[1] = self.minimum_height
-
-        # IK check for joints
-        data_joints = sample_retarget.q
-        q_desired = self._sim.get_ik_solver_q(data_joints,
-                                              end_effectors_pos[0,:],
-                                              end_effectors_pos[2,:],
-                                              end_effectors_pos[1,:],
-                                              end_effectors_pos[3,:])
-        sample_retarget.q = q_desired
 
         # compute reward
         reward, reward_info, err_info = self.reward_utils.compute_reward(
