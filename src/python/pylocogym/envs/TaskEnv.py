@@ -105,10 +105,10 @@ class TaskEnv(VanillaEnv):
         self.box_throwing_counter = 0
         self.lerp.reset()  # reset dataloader
 
+        self.heading_angle = np.random.uniform(-np.pi/2, np.pi/2)
         # self.phase = self.sample_initial_state()
         if self.enable_rand_init:
             self.initial_time = np.random.uniform(0, self.motion.duration-self.cnt_timestep_size)
-            self.heading_angle = np.random.uniform(-np.pi/2, np.pi/2)
             self.phase = self.initial_time / self.motion.duration
         else:
             self.phase = phase

@@ -4,9 +4,9 @@
 #SBATCH --time=24:00:00                    # hours:minutes:seconds
 #SBATCH --mem-per-cpu=2000
 #SBATCH --tmp=4000                        # per node!!
-#SBATCH --job-name=deep_mimic
-#SBATCH --output=./jobs/deep_mimic.out
-#SBATCH --error=./jobs/deep_mimic.err
+#SBATCH --job-name=deep_mimic_walk_task
+#SBATCH --output=./jobs/deep_mimic_walk_task.out
+#SBATCH --error=./jobs/deep_mimic_walk_task.err
 #SBATCH --gpus=1
 
 #env2lmod
