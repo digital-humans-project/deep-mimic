@@ -38,10 +38,10 @@
     "weight_com": 0.1,
     "sigma_com": 0.2,
 
-    "weight_height": 0.2,
+    "weight_height": 0.1,
     "sigma_height": 0.1,
 
-    "weight_root_ori": 0.0,
+    "weight_root_ori": 0.1,
     "sigma_root_ori": 0.05,
 
     "weight_smoothness1": 1.0e-2,
@@ -59,7 +59,7 @@
     "weight_legs": 0.3,
     "sigma_legs": 0.1,
 
-    "weight_end_effectors": 0.3,
+    "weight_end_effectors": 0.5,
     "sigma_end_effectors": 0.1,
 
     "weight_task":0.3,
