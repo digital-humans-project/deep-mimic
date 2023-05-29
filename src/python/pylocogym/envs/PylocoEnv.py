@@ -1,7 +1,8 @@
+import importlib.util
 import sys
+
 import gym
 import numpy as np
-import importlib.util
 from gym import spaces
 from scipy.spatial.transform import Rotation
 

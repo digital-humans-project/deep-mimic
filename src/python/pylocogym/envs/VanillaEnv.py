@@ -19,7 +19,11 @@ from pylocogym.data.deep_mimic_bob_adapter import (
     BobMotionDataFieldNames,
     DeepMimicMotionBobAdapter,
 )
-from pylocogym.data.deep_mimic_motion import DeepMimicMotion, DeepMimicMotionDataFieldNames
+from pylocogym.data.deep_mimic_motion import (
+    DeepMimicMotion,
+    DeepMimicMotionDataFieldNames,
+)
+from pylocogym.data.forward_kinematics import ForwardKinematics
 from pylocogym.data.lerp_dataset import LerpMotionDataset
 from pylocogym.data.loop_dataset import LoopKeyframeMotionDataset
 from pylocogym.envs.rewards.bob.humanoid_reward import Reward
@@ -164,26 +168,30 @@ class VanillaEnv(PylocoEnv):
             self._sim.throw_box(self.box_throwing_counter % 3, self.box_throwing_strength, random_start_pos)
             self.box_throwing_counter += 1
 
+        # Accelerate or decelerate motion clips, usually deceleration
+        # (clips_play_speed < 1 nomarlly)
+        next_t = (self._sim.get_time_stamp() + self.cnt_timestep_size) * self.clips_play_speed
+
+        """ Forwards and Inverse kinematics """
+        # Load retargeted data
+        res = self.lerp.eval(next_t)
+        assert res is not None
+        sample, kf = res
+        sample_retarget = self.adapter.adapt(sample, kf)  # type: ignore # data after retargeting
+        
         # run simulation
-        action_applied = self.scale_action(action)
+        target_act = action * np.pi + sample_retarget.q_fields.joints
+        action_applied = np.clip(target_act, self.joint_angle_limit_low, self.joint_angle_limit_high)
         self._sim.step(action_applied)
         observation = self.get_obs()
+
+        now_t = self._sim.get_time_stamp() * self.clips_play_speed
+        assert abs(now_t - next_t) < 1e-6, f"{now_t} - {next_t} = {now_t - next_t}"
 
         # update variables
         self.current_step += 1
         # self.action_buffer = np.roll(self.action_buffer, self.num_joints)  # moving action buffer
         # self.action_buffer[0 : self.num_joints] = action_applied
-
-        # Accelerate or decelerate motion clips, usually deceleration
-        # (clips_play_speed < 1 nomarlly)
-        now_t = self._sim.get_time_stamp() * self.clips_play_speed
-
-        """ Forwards and Inverse kinematics """
-        # Load retargeted data
-        res = self.lerp.eval(now_t)
-        assert res is not None, "lerp.eval(now_t) is None"
-        sample, kf = res
-        sample_retarget = self.adapter.adapt(sample, kf)  # type: ignore # data after retargeting
 
         # data_joints = sample_retarget.q
         # q_desired = self._sim.get_ik_solver_q(data_joints,
@@ -207,6 +215,7 @@ class VanillaEnv(PylocoEnv):
             self.is_obs_fullstate,
             sample_retarget,
             end_effectors_pos,
+            action
         )
 
         self.sum_episode_reward_terms = {
