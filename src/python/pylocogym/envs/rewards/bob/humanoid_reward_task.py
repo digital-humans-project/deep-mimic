@@ -111,19 +111,13 @@ class TaskReward(Reward):
         joints_vel_err = diff
 
         # Task reward
+        desired_heading_vector = observation.observation[-3:-1]
+        now_heading_vector = observation.vel[[0,2]]
         
-        if self.add_task_obs:
-            desired_v_xz = observation.observation[-1]
-            desired_direction = observation.observation[-3:-1]
-        else:
-            desired_v_xz = params.get("fwd_vel_cmd",0)
-            desired_direction = np.array(params.get("heading_vec",0))
-            
-        now_v_xz = np.sum(observation.vel[[0,2]]*desired_direction)/np.linalg.norm(desired_direction)
-        diff = np.max([0.0,desired_v_xz - now_v_xz])
+        diff = np.sum(now_heading_vector*desired_heading_vector)/np.linalg.norm(now_heading_vector)
         weight_task = params.get("weight_task", 0)
         sigma_task = params.get("sigma_task", 0)
-        task_reward = weight_task * np.exp(-diff/(2.0*sigma_task**2))
+        task_reward = weight_task * np.exp(-(diff-1)**2/(2.0*sigma_task**2))
         task_err = diff
 
 

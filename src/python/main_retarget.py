@@ -11,7 +11,7 @@ from pylocogym.cmake_variables import *
 if __name__ == "__main__":
 
     motion_clip_file = "humanoid3d_walk.txt"
-    config = "bob_env.json"
+    config = "bob_env_walk_task.json"
     # urdf_file = "data/robots/deep-mimic/humanoid.urdf"
 
     # log path
@@ -37,7 +37,7 @@ if __name__ == "__main__":
     dir_name = "{id}-{rew}-{steps:.1f}M".format(id=params['env_id'], rew=motion_clip_file, steps=float(steps / 1e6))
 
     # Play environment
-    retarget.play_motion(
+    retarget.test(
         params=params,
         motion_clips_path=motion_clip_file,
     )
