@@ -28,7 +28,8 @@ class Reward:
                        observation_raw, 
                        is_obs_fullstate,
                        sample_retarget,
-                       end_effectors_pos):
+                       end_effectors_pos,
+                       action):
         """
         Compute the reward based on observation (Vanilla Environment).
 
