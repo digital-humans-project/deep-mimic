@@ -146,7 +146,7 @@ class TaskEnv(VanillaEnv):
 
         # run simulation
         action_applied = self.scale_action(action)
-        self._sim.step(action)
+        self._sim.step(action_applied)
         observation = self.get_obs()
 
         # update variables
