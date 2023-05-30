@@ -196,7 +196,7 @@ crl::dVector Simulator::getIkSolverQ(const crl::dVector &q_raw,
     gcrr.setQ(q);
     gcrr.syncRobotStateWithGeneralizedCoordinates();
     std::vector<int> ind{1,2,4,5,7,8,10,11,13,14,16,17,27,28,30,31,33,34,36,37,38,40,42,39,41,43};
-    Eigen::DiagonalMatrix<double,6> W(0.1,1,0.1,0.3,0.3,0.3);
+    Eigen::DiagonalMatrix<double,6> W(0.1,1,0.1,0.5,0.5,0.5);
     for (int i = 0; i < robot_->getLimbCount(); i++) 
         R_desired[i] = gcrr.getOrientationFor(robot_->getLimb(i)->eeRB);
     
@@ -215,7 +215,8 @@ crl::dVector Simulator::getIkSolverQ(const crl::dVector &q_raw,
         max_err = 0;
 
         for (int i = 0; i < robot_->getLimbCount(); i++) {
-
+            if(i == 1 || i == 3)
+                continue;
             eePos = robot_->getLimb(i)->ee->endEffectorOffset;
             rb = (robot_->getLimb(i)->eeRB);
             target = crl::getP3D(eePosTarget[i]);
@@ -252,7 +253,7 @@ crl::dVector Simulator::getIkSolverQ(const crl::dVector &q_raw,
                 max_err = err_pos.norm();
             
         } 
-        if(max_err < 0.02) 
+        if(max_err < 0.015) 
             break;
         // deltaq(ind) *= 0;
         q.tail(q.size() - 6) += 0.2*deltaq;

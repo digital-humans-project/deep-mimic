@@ -212,7 +212,7 @@ class PylocoEnv(gym.Env):
         if mode == "human":
             if self._viewer is None:
                 # create full-screen viewer
-                self._viewer = pyloco.Viewer(self._sim)
+                self._viewer = pyloco.Viewer(self._sim,1280,960)
 
             # show plot for human
             self._viewer.show_plots = True

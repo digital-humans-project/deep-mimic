@@ -118,7 +118,7 @@ class VanillaEnv(PylocoEnv):
 
         # Forwards Kinematics class
         # self.fk = ForwardKinematics(env_params["urdf_path"])
-        self.minimum_height = 0.009
+        self.minimum_height = 0.01 
         self.q_store = None
 
     def reset(self, seed=None, return_info=False, options=None, phase=0):
@@ -154,14 +154,14 @@ class VanillaEnv(PylocoEnv):
         for each_pos in end_effectors_pos:
             if each_pos[1] < self.minimum_height:
                 each_pos[1] = self.minimum_height
-                use_ik = True
+                # use_ik = True
         
         # end_effectors_pos[0][1] += 0.1
         if use_ik:
-            print("use_inverse_kinematic")
+            # print("use_inverse_kinematic")
             if self.q_store is None:
                 self.q_store = q_reset
-            q_ik_init = np.concatenate([q_reset[0:6], 0.5*self.q_store[6:]+0.5*q_reset[6:]])
+            q_ik_init = np.concatenate([q_reset[0:6], 0.7*self.q_store[6:]+0.3*q_reset[6:]])
             q_reset = self._sim.get_ik_solver_q(q_ik_init,
                                                 end_effectors_pos[0],
                                                 end_effectors_pos[2],
@@ -171,6 +171,9 @@ class VanillaEnv(PylocoEnv):
 
         else:
             self.q_store = None
+        # q_reset[3:6] *= 0 
+        # q_reset[6:] =  self.joint_angle_default
+        # q_reset[1] = 0.9
         self._sim.reset(q_reset, qdot_reset, self.initial_time / self.clips_play_speed)  # q, qdot include root's state(pos,ori,vel,angular vel)
         # self._sim.reset()
 
