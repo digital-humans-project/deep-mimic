@@ -57,10 +57,10 @@ if __name__ == "__main__":
     for ep in tqdm(range(export_params["max_steps"])):
         action, _ = model.predict(obs)
         obs, reward, done, info = eval_env.step(action)
-        eval_env.render()
+        # eval_env.render()
     input_fps = env_params["control_rate"]
 
+    eval_env.close()
     export_dir = export_params["out_dir"]
     fps = export_params["fps"]
     eval_env.save_videos(export_dir, export_params.get("input_fps", input_fps), fps)
-    eval_env.close()
