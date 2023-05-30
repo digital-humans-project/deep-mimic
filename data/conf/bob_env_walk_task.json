@@ -17,8 +17,8 @@
     "max_episode_steps": 30,
     "max_evaluation_steps": 1000,
     "seed": 313,
-    "normalize_observation": false,
-    "normalize_reward": false
+    "normalize_observation": true,
+    "normalize_reward": true
   },
   "environment_params": {
     "robot_model": "Bob",
@@ -73,11 +73,11 @@
     "network_architecture": {
       "pi": [
         1024,
-        512
+        1024
       ],
       "vf": [
         1024,
-        512
+        1024
       ]
     }
   }
