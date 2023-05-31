@@ -22,8 +22,8 @@ def test(params, motion_clips_path=None, urdf_path = None):
 
     if motion_clips_path is not None:
         reward_params["motion_clips_file_path"] = motion_clips_path  # add reward path to reward params
-    if urdf_path is not None:
-        env_params["urdf_path"] = urdf_path
+    # if urdf_path is not None:
+    #     env_params["urdf_path"] = urdf_path
         
     # =============
     # create a simple environment for evaluation
@@ -56,7 +56,7 @@ def test(params, motion_clips_path=None, urdf_path = None):
             action = eval_env.envs[0].adapter.adapt(sample, kf).q[6:]
             # action = eval_env.envs[0].lerp.eval(t).q[6:]
             obs, reward, done, info = eval_env.envs[0].step(action)
-            print("now time, now phase", obs[-2],obs[-1])
+            # print("now time, now phase", obs[-2],obs[-1])
             t += 1.0/(frame_rate/eval_env.envs[0].clips_play_speed)
             time.sleep(0.01)
     eval_env.close()
@@ -109,20 +109,17 @@ def play_motion(params, motion_clips_path=None, urdf_path = None):
         # t2 = eval_env.envs[1].phase*eval_env.envs[1].dataset.duration
         phase = 0
         while phase <= 2:
+            phase = 0.0
+            if phase <= 2: 
+                eval_env.envs[0].reset(phase = phase)
+            else:
+                action = eval_env.envs[0].joint_angle_default
+                eval_env.envs[0]._sim.step(action)
 
-            # action = eval_env.envs[0].lerp.eval(t1).q[6:]
-            # obs, reward, done1, info = eval_env.envs[0].step(action)
-            phase += 0.01
-            eval_env.envs[0].reset(phase = phase)
             eval_env.envs[0].render("human")
-            # print("now time, now phase", obs[-2],obs[-1])
-
-            # action2 = eval_env.envs[1].lerp.eval(t2).q[6:]
-            # _,_,done2,_ = eval_env.envs[1].step(action2)
-
             # t1 += 1.0/(frame_rate)
             # t2 += 1.0/frame_rate
-            time.sleep(0.01)
+            # time.sleep(0.01)
     eval_env.close()
 
 
