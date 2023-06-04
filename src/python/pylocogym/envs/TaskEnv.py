@@ -18,6 +18,9 @@ from pylocogym.envs.rewards.bob.humanoid_reward_task import TaskReward
 
 
 class TaskEnv(VanillaEnv):
+    """
+    The task that the agent is obligated to follow in the current implementation of the environment is a heading direction.
+    """
     def __init__(self, 
                  max_episode_steps, 
                  env_params, reward_params, 
@@ -44,6 +47,9 @@ class TaskEnv(VanillaEnv):
             
         
     def augment_obs_space(self):
+        """
+        Augments (appends) the observation space to include the newly introduced  heading direction.
+        """
         self.observation_low = np.concatenate((
             self.observation_low,
             np.array([-1,-1]),  # heading direction
@@ -63,22 +69,27 @@ class TaskEnv(VanillaEnv):
             dtype=np.float64)   
 
     def get_obs(self):
+        """
+        Augments (appends) the observation to include the newly introduced  heading direction.
+        """
         obs =  super().get_obs()
         obs = np.concatenate((obs,self.heading_vector,self.heading_angle), axis=None)
         return obs
 
     def rotate_coordinate(self, q, qdot):
         
+        # Extract rotation matrix of the angle
         R_heading = Rotation.from_rotvec(self.heading_angle * np.array([0, 1, 0]))
         
+        # The "forward" direction is the z-axis.
         self.heading_vector = R_heading.apply(np.array([0,0,1]))
-        self.heading_vector = self.heading_vector[[0,2]]
+        self.heading_vector = self.heading_vector[[0,2]] # Remove the y-coordinate of the velocity, as the agent cannot fly.
         R_now = Rotation.from_euler("YXZ",q[3:6])
-        R = R_heading*R_now
+        R = R_heading*R_now # Compose the rotation R_now -> R_heading.
         
-        q[0:3] =  R_heading.apply(q[0:3])
-        q[3:6] = R.as_euler("YXZ")
-        qdot[0:3] = R_heading.apply(qdot[0:3])
+        q[0:3] =  R_heading.apply(q[0:3]) # Apply heading rotation on the full motion clip. Intuition is easier if reminded that q is w.r.t world coordinates.
+        q[3:6] = R.as_euler("YXZ") # Apply the full rotation on the *yaw, pitch & roll* of the agent. Essentially, this orients the agent.
+        qdot[0:3] = R_heading.apply(qdot[0:3]) # Make the linear velocity vector "turn" to align with the "self.heading_angle".
         #not calculating the qdot angular velocity values, need to change order of axes before doing so
         # qdot[3:6] = R_heading.apply(qdot[3:6])
 
@@ -106,8 +117,17 @@ class TaskEnv(VanillaEnv):
         self.box_throwing_counter = 0
         self.lerp.reset()  # reset dataloader
 
+        # At the beginning of each episode, an initial heading angle in the semicircle is sampled.
+        # The model will attempt to follow this direction for the whole duration of the episode,
+        # The (uniform) sampling is done, so as to explore the solution space and make the model generalizable and robust.
         self.heading_angle = np.random.uniform(-np.pi/2, np.pi/2)
         # self.phase = self.sample_initial_state()
+        # Have the episode run starting from a random frame of the motion clip.
+        # This is so that the agent adapts their parameterization (e.g. NN weights) in such a way that they can handle the motion holistically.
+        # As a counter argument, if the agent were to always start from a single, predetermined phase (e.g. at the beginning of them motion),
+        # then the agent would first learn to tackle the first few frames starting from the predetermined phase,
+        # but then having to significantly tweak its parameterization to handle the full motion.
+        # In a nutshell, this is done in the hopes that the agent converges faster to the desired solution.
         if self.enable_rand_init:
             self.initial_time = np.random.uniform(0, self.motion.duration-self.cnt_timestep_size)
             self.phase = self.initial_time / self.motion.duration
@@ -120,7 +140,7 @@ class TaskEnv(VanillaEnv):
         sim_duration = data_duration / self.clips_play_speed
 
 
-        # Maximum episdode step
+        # Maximum episode step
         self.max_episode_steps = int(sim_duration / self.cnt_timestep_size)
         assert self.max_episode_steps > 0, "max_episode_steps should be positive"
 

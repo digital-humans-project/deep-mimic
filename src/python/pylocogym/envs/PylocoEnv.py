@@ -308,7 +308,10 @@ class PylocoEnv(gym.Env):
         res = self.lerp.eval(now_t)
         assert res is not None
         sample, kf = res
+        # Retargeting is done from deep mimic humanoid model to Bob (i.e. DeepMimic -> Bob)
         sample_retarget = self.adapter.adapt(sample, kf)  # type: ignore # data after retargeting
+        #? Konstantinos question: It seems weird to me to call "self.adapter" inside "PylocoEnv",
+        #? when I only see this defined inside the subclass "VanillaEnv".
         
         # sample = self.motion_lerp.eval(now_t)  # original data for fk calculation
         

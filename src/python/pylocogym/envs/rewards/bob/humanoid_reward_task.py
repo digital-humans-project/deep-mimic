@@ -114,7 +114,12 @@ class TaskReward(Reward):
         desired_heading_vector = observation.observation[-3:-1]
         now_heading_vector = observation.vel[[0,2]]
         
-        diff = np.sum(now_heading_vector*desired_heading_vector)/np.linalg.norm(now_heading_vector)
+        # "diff" tracks the similarity of the direction the agent is heading towards in the current observation, "now_heading_vector",
+        # and the desired direction, "desired_heading_vector".
+        # Remember: # Math: proj_{\vec{b}}{\vec{a}} = \frac{\vec{a} \cdot \vec{b}}{ \| \vec{b} \|^2} \vec{b}
+        # NOTE: If the directions are known to be unit vectors (i.e. norm = 1), then there is no need to call "np.linalg.norm"
+        # This can be computationally less expensive, because computing square roots (definition of a norm) requires an iterative root-problem solver.
+        diff = np.dot(now_heading_vector, desired_heading_vector)/np.linalg.norm(desired_heading_vector)
         weight_task = params.get("weight_task", 0)
         sigma_task = params.get("sigma_task", 0)
         task_reward = weight_task * np.exp(-(diff-1)**2/(2.0*sigma_task**2))
