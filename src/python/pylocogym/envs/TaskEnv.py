@@ -78,8 +78,8 @@ class TaskEnv(VanillaEnv):
         
         q[0:3] =  R_heading.apply(q[0:3])
         q[3:6] = R.as_euler("YXZ")
-        #not calculating the qdot angular velocity values 
-        # qdot[0:3] = R_heading.apply(qdot[0:3])
+        qdot[0:3] = R_heading.apply(qdot[0:3])
+        #not calculating the qdot angular velocity values, need to change order of axes before doing so
         # qdot[3:6] = R_heading.apply(qdot[3:6])
 
         return q, qdot
