@@ -122,7 +122,6 @@ class Reward:
         # leg_reward = weight_legs * np.exp(-np.sum(np.square(diff))/(2.0*12*sigma_legs**2))
 
         # End effector reward
-        # ignore x axis diff
         diff_lf = end_effectors_pos[0] - observation.lf
         diff_rf = end_effectors_pos[1] - observation.rf
         diff_lh = end_effectors_pos[2] - observation.lh

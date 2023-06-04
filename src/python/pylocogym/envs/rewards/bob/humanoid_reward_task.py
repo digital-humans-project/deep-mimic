@@ -49,26 +49,26 @@ class TaskReward(Reward):
         diff = np.linalg.norm(desired_base_pos_xz - now_base_xz)
         sigma_com = params.get("sigma_com", 0)
         weight_com = params.get("weight_com", 0)
-        com_reward = weight_com * np.exp(-diff**2/(2.0*sigma_com**2))
-        com_err = diff
+        com_reward = weight_com * np.exp(-diff**2/(2.0*sigma_com**2)) # Inspired from assignment 2 equivalent reward.
+        com_err = diff # Error which will be logged.
 
         # Root height reward
         height = observation.y
         desired_height = sample_retarget.q_fields.root_pos[1]
-        diff_squere = (height - desired_height)**2
+        diff_square = (height - desired_height)**2
         sigma_height = params.get("sigma_height", 0)
         weight_height = params.get("weight_height", 0)
-        height_reward = weight_height * np.exp(-diff_squere/(2.0*sigma_height**2))
-        height_err = height - desired_height
+        height_reward = weight_height * np.exp(-diff_square/(2.0*sigma_height**2)) # Inspired from assignment 2 equivalent reward.
+        height_err = height - desired_height # Error which will be logged.
 
         # Root orientation reward
         R = Rotation.from_euler('YXZ',sample_retarget.q_fields.root_rot)
         desired_ori = R.as_quat()
-        diff_squere = np.sum((observation.ori_q - desired_ori)**2)
+        diff_square = np.sum((observation.ori_q - desired_ori)**2)
         weight_root_ori = params.get("weight_root_ori", 0)
         sigma_root_ori = params.get("sigma_root_ori", 0)
-        root_ori_reward = weight_root_ori * np.exp(-diff_squere/(sigma_root_ori**2))
-        root_ori_err = diff_squere
+        root_ori_reward = weight_root_ori * np.exp(-diff_square/(sigma_root_ori**2))
+        root_ori_err = diff_square
 
         N = num_joints
         N_mimic = len(self.mimic_joints_index)
@@ -88,7 +88,6 @@ class TaskReward(Reward):
 
 
         # End effector reward
-        # ignore x axis diff
         diff_lf = end_effectors_pos[0] - observation.lf
         diff_rf = end_effectors_pos[1] - observation.rf
         diff_lh = end_effectors_pos[2] - observation.lh
@@ -110,7 +109,7 @@ class TaskReward(Reward):
         joints_vel_reward = weight_joints_vel * np.exp(-diff/(2.0*N_mimic*sigma_joints_vel**2))
         joints_vel_err = diff
 
-        # Task reward
+        # Task (follow specific direction) reward
         desired_heading_vector = observation.observation[-3:-1]
         now_heading_vector = observation.vel[[0,2]]
         

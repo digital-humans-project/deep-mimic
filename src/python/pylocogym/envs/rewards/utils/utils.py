@@ -6,14 +6,14 @@ class ObservationData:
     def __init__(self, observation_raw, num_joints, is_obs_fullstate=True):
         self.observation = observation_raw
         self.num_obs = len(observation_raw)
-        self.num_additional_obs = self.num_obs - (num_joints * 2 + 9) + 3 * is_obs_fullstate
+        self.num_additional_obs = self.num_obs - (num_joints * 2 + 9) + 3 * is_obs_fullstate #? What *are* these +3 observations?
         self.is_fullstate = is_obs_fullstate
         # self.time_stamp = observation_raw[-2] # observation_raw[-2] = t, observation_raw[-1] = phase
 
         if is_obs_fullstate:
             """Fully observed observation convention:
-                    observation = [ global position, Euler angles, joint angles,
-                                    global velocity, angular velocity, joint velocity,
+                    observation = [ global position, root orientation expressed in Euler angles, joint angles,
+                                    global velocity, root angular velocity, joint velocity,
                                     additional observation elements]
                                     
                     position convention: x = left, y = up, z = forward
@@ -35,7 +35,7 @@ class ObservationData:
             self.ori_y = observation_raw[4]
             self.ori_z = observation_raw[5]
             self.ori_w = np.sqrt(1 - np.sum(np.square(observation_raw[3:6])))
-            self.ori_q = np.array([self.ori_x,self.ori_y,self.ori_z,self.ori_w])
+            self.ori_q = np.array([self.ori_x,self.ori_y,self.ori_z,self.ori_w]) # Quaternion representation
 
             # joint angles:
             self.joint_angles = observation_raw[6:6 + num_joints]
@@ -46,16 +46,16 @@ class ObservationData:
             self.local_vel = rotation_to_local.apply(self.vel)
 
             # angular velocity:
-            self.ang_vel = observation_raw[9 + num_joints:12 + num_joints]  # in global coordinates
+            self.ang_vel = observation_raw[9 + num_joints:(9+3) + num_joints]  # in global coordinates
 
             # joint velocity:
-            self.joint_vel = observation_raw[12 + num_joints:12 + 2 * num_joints]
+            self.joint_vel = observation_raw[12 + num_joints:12 + 2 * num_joints] # Rate of change of 1D joints: 1 value per joint.
 
             # end effectors:
-            self.lf = observation_raw[12 + 2 * num_joints: 15 + 2 * num_joints]
-            self.rf = observation_raw[15 + 2 * num_joints: 18 + 2 * num_joints]
-            self.lh = observation_raw[18 + 2 * num_joints: 21 + 2 * num_joints]
-            self.rh = observation_raw[21 + 2 * num_joints: 24 + 2 * num_joints]
+            self.lf = observation_raw[12 + 2 * num_joints: 15 + 2 * num_joints] # Left foot (x,y,z)
+            self.rf = observation_raw[15 + 2 * num_joints: 18 + 2 * num_joints] # Right foot (x,y,z)
+            self.lh = observation_raw[18 + 2 * num_joints: 21 + 2 * num_joints] # Left hand (x,y,z)
+            self.rh = observation_raw[21 + 2 * num_joints: 24 + 2 * num_joints] # Right hand (x,y,z)
 
             self.end_effectors = np.vstack((self.lf,self.rf,self.lh,self.rh))
 
@@ -121,16 +121,19 @@ def calc_max_mag_torque(torques, num_joints):
 
 
 def tail(vector, segment_length):
+    #? Why define this function, when python indexing can handle this?
+    #? It would be vector[-(1 + segment_length):].
+    #? The above command can be descriptively interpreted as: 1) go to the last element (-1) and then keep decrementing (-segment_length).
     return vector[len(vector) - segment_length:]
 
 
 def calc_derivatives(buffer, dt, num_elements):
-    """ Calculate first and second derivative given history buffer.
+    """ Approximate first and second derivative given history buffer using discrete differences.
     buffer = [current, previous, past]
     """
     current = buffer[0:num_elements]
     past = buffer[num_elements:2 * num_elements]
     past_past = buffer[num_elements * 2: 3 * num_elements]
-    x_dot = (current - past) / dt
-    x_ddot = (current - 2 * past + past_past) / dt ** 2
+    x_dot = (current - past) / dt # Forward 1st order discrete differences
+    x_ddot = (current - 2 * past + past_past) / dt ** 2 # Central 2nd order discrete differences
     return x_dot, x_ddot
