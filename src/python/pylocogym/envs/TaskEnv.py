@@ -70,16 +70,20 @@ class TaskEnv(VanillaEnv):
     def rotate_coordinate(self, q, qdot):
         
         R_heading = Rotation.from_rotvec(self.heading_angle * np.array([0, 1, 0]))
+        print("R_heading", R_heading)
         
         self.heading_vector = R_heading.apply(np.array([0,0,1]))
+        print("heading_vector", self.heading_vector)
         self.heading_vector = self.heading_vector[[0,2]]
+        print("heading_vector", self.heading_vector)
         R_now = Rotation.from_euler("YXZ",q[3:6])
         R = R_heading*R_now
         
         q[0:3] =  R_heading.apply(q[0:3])
         q[3:6] = R.as_euler("YXZ")
-        qdot[0:3] = R_heading.apply(qdot[0:3])
-        qdot[3:6] = R_heading.apply(qdot[3:6])
+        #not calculating the qdot angular velocity values 
+        # qdot[0:3] = R_heading.apply(qdot[0:3])
+        # qdot[3:6] = R_heading.apply(qdot[3:6])
 
         return q, qdot
 
