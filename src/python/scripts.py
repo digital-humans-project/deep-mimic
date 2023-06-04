@@ -43,17 +43,22 @@ def train(params,
     reward_params = params['reward_params']
 
     steps = hyp_params['time_steps']
+
     motion_clip_file = params['motion_file']
     dir_name = "{id}-{clips}-{steps:.1f}M".format(id=params['env_id'], clips=motion_clip_file, steps=float(steps / 1e6))
     save_path = manage_save_path(log_path, dir_name)
-    
     
     n_envs = hyp_params['num_envs'] if (not debug) else 1
     max_episode_steps = hyp_params.get('max_episode_steps', 500)
     max_evaluation_steps = hyp_params.get('max_evaluation_steps', 500)
     seed = hyp_params.get("seed", 313)
 
-    motion_clip_file = os.path.join("data", "deepmimic", "motions", motion_clip_file)
+    if isinstance(params['motion_file'], str):
+        motion_clip_file = os.path.join("data", "deepmimic", "motions", motion_clip_file)
+    elif isinstance(params['motion_file'], list) and len(params['motion_file']) == 1:
+        motion_clip_file = os.path.join("data", "deepmimic", "motions", motion_clip_file[0])
+    else:
+        motion_clip_file = params['motion_file']
 
     reward_params["motion_clips_file_path"] = motion_clip_file  # add reward path to reward params
 
