@@ -202,8 +202,14 @@ class DeepMimicMotionBobAdapter(DeepMimicMotion):
         j = self.retarget_joint_angle(q_curr_frame)
         root_rot = self.retarget_base_orientation(q_curr_frame)
         root_pos = self.retarget_base_pos(q_curr_frame)
-        q = np.concatenate([root_pos, root_rot, j])
+        q_frame = np.concatenate([root_pos, root_rot, j])
 
-        return q
+        return q_frame
+    
+    def retarget_datamotion(self, q_curr_motion):
+        q = []
+        for i in range(len(q_curr_motion)):
+            q.append(self.retarget_datavalues(q_curr_motion[i]))
+        return np.array(q)
 
 
