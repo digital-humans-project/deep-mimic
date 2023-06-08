@@ -22,8 +22,7 @@ class ConstantLrSchedule:
 
 def get_schedule_fn(value_schedule: Union[Schedule, float, int]) -> Schedule:
     """
-    Transform (if needed) learning rate and clip range (for PPO)
-    to callable.
+    Transform (if needed) learning rate and clip range (for PPO) to callable.
 
     :param value_schedule:
     :return:
@@ -59,13 +58,17 @@ class CustomPPO(PPO):
     def train(self) -> None:
         """
         Update policy using the currently gathered rollout buffer.
+        Reminder:  A rollout is the collection of environment interaction using the current policy.
         """
         # Switch to train mode (this affects batch norm / dropout)
         self.policy.set_training_mode(True)
-        # Update optimizer learning rate
+        # Update learning rate of all optimizers.
+        # Optimizers are potentially different from one another.
+        # e.g. optimizer of policy network and optimizer of state value network may have different learning rates.
         self._update_learning_rate(self.policy.optimizer)
         # Compute current clip range
-        clip_range = self.clip_range(self._current_progress_remaining)
+        # Following implementation of stable_baselines3
+        clip_range = self.clip_range(self._current_progress_remaining) #? It's not quite clear why clipping happens...
         # Optional: clip range for the value function
         if self.clip_range_vf is not None:
             clip_range_vf = self.clip_range_vf(self._current_progress_remaining)
@@ -82,6 +85,8 @@ class CustomPPO(PPO):
         for epoch in range(self.n_epochs):
             approx_kl_divs = []
             # Do a complete pass on the rollout buffer
+            # The "self.rollout_buffer" variable has been filled in inside the "self.learn()" call,
+            # before a call to this function (i.e. self.train()) is made.
             for rollout_data in self.rollout_buffer.get(self.batch_size):
                 actions = rollout_data.actions
                 if isinstance(self.action_space, spaces.Discrete):

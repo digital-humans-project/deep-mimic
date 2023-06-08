@@ -178,7 +178,7 @@ class VanillaEnv(PylocoEnv):
         # (clips_play_speed < 1 nomarlly)
         now_t = self._sim.get_time_stamp() * self.clips_play_speed
 
-        """ Forwards and Inverse kinematics """
+        """ Forward and Inverse kinematics """
         # Load retargeted data
         res = self.lerp.eval(now_t)
         assert res is not None, "lerp.eval(now_t) is None"
