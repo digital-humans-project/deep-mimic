@@ -108,9 +108,9 @@ def play_motion(params, motion_clips_path=None, urdf_path = None):
         # t1 = eval_env.envs[0].phase*eval_env.envs[0].dataset.duration
         # t2 = eval_env.envs[1].phase*eval_env.envs[1].dataset.duration
         phase = 0
-        while phase <= 2:
-            phase += 0.0
-            if phase <= 2: 
+        while phase <= 1:
+            phase += 0.01
+            if phase <= 1: 
                 eval_env.envs[0].reset(phase = phase)
             else:
                 action = eval_env.envs[0].joint_angle_default

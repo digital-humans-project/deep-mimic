@@ -10,7 +10,7 @@ from pylocogym.cmake_variables import *
 
 if __name__ == "__main__":
 
-    motion_clip_file = "humanoid3d_walk.txt"
+    motion_clip_file = "humanoid3d_getup_facedown.txt"
     config = "bob_env_walk.json"
     # urdf_file = "data/robots/deep-mimic/humanoid.urdf"
 
