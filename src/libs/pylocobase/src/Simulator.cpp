@@ -220,8 +220,7 @@ crl::dVector Simulator::getIkSolverQ(const crl::dVector &q_inital,
         double max_err = 0;
 
         for (int i = 0; i < robot_->getLimbCount(); i++) {
-            if(i == 1 || i == 3)
-                continue;
+            
             eePos = robot_->getLimb(i)->ee->endEffectorOffset;
             rb = (robot_->getLimb(i)->eeRB);
             target = crl::getP3D(eePosTarget[i]);
@@ -267,7 +266,7 @@ crl::dVector Simulator::getIkSolverQ(const crl::dVector &q_inital,
         gcrr.syncRobotStateWithGeneralizedCoordinates();
     }
     
-    // std::cout << k <<" aver: "<<max_err<<std::endl;
+    // std::cout << "total iteration num: " << k <<std::endl;
     // reset current physic to the initial state
     gcrr.setQ(q_backup);
     gcrr.syncRobotStateWithGeneralizedCoordinates();
