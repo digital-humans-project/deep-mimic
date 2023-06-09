@@ -36,6 +36,7 @@ class DeepMimicMotionCombine(MapKeyframeMotionDataset):
                  clips_num_repeat: list,
                  t0: float = 0.0,) -> None:
         super().__init__()
+        self.frames_exist = False
 
         assert all(isinstance(elem, int) and elem > 1 
                    for elem in clips_num_repeat), "Clip repeat value must be integer and greater than 1."
@@ -48,16 +49,25 @@ class DeepMimicMotionCombine(MapKeyframeMotionDataset):
             with open(motion_curr_path, "r") as f:
                 data = json.load(f)
             curr_frames = np.array(data["Frames"])
+            print("curr_frames", curr_frames[:,1])
             
             for rep in range(clips_num_repeat[i]-1):
-                if i==0:
+                if not self.frames_exist:
                     frames = curr_frames
                     rep +=1
+                    self.frames_exist = True
+                    print("frames", frames[:,1])
                 frames_last_state_x, frames_last_state_z = frames[-1][1], frames[-1][3]
-                curr_frames[:,1] += frames_last_state_x
-                curr_frames[:,3] += frames_last_state_z
-                curr_frames[-1,0] = curr_frames[-2,0]
-                frames = np.concatenate([frames, curr_frames])  
+                print("frames_last_state_x, frames_last_state_z", frames_last_state_x, frames_last_state_z)
+                trans_frames = curr_frames.copy()
+                print("trans_frames", trans_frames[:,1])
+                trans_frames[:,1] += frames_last_state_x
+                trans_frames[:,3] += frames_last_state_z
+                trans_frames[-1,0] = trans_frames[-2,0]
+                print("trans_frames", trans_frames[:,1])
+                print("curr_frames", curr_frames[:,1])
+                frames = np.concatenate([frames, trans_frames])
+                print("current frame shape", frames.shape)  
                     
             # if i == 0:
             #     frames = np.vstack([curr_frames] * (clips_num_repeat[i]-1))
@@ -69,10 +79,11 @@ class DeepMimicMotionCombine(MapKeyframeMotionDataset):
 
             frame_transition_idx_motion1 , frame_transition_idx_motion2 = frame_transition_idx[i]
             frames_last_state_x, frames_last_state_z = frames[-1][1], frames[-1][3]
-            curr_frames[:frame_transition_idx_motion1+1, 1] += frames_last_state_x
-            curr_frames[:frame_transition_idx_motion1+1, 3] += frames_last_state_z
-            curr_frames[-1,0] = curr_frames[-2,0]
-            frames = np.concatenate([frames, curr_frames[:frame_transition_idx_motion1+1]])
+            trans_frames = curr_frames.copy()
+            trans_frames[:frame_transition_idx_motion1+1, 1] += frames_last_state_x
+            trans_frames[:frame_transition_idx_motion1+1, 3] += frames_last_state_z
+            trans_frames[-1,0] = trans_frames[-2,0]
+            frames = np.concatenate([frames, trans_frames[:frame_transition_idx_motion1+1]])
             print("Stage 2", frames.shape)
 
 
@@ -80,27 +91,31 @@ class DeepMimicMotionCombine(MapKeyframeMotionDataset):
                 data = json.load(f)
             curr_frames = np.array(data["Frames"])
             frames_last_state_x, frames_last_state_z = frames[-1][1], frames[-1][3]
-            curr_frames[frame_transition_idx_motion2:, 1] += frames_last_state_x
-            curr_frames[frame_transition_idx_motion2:, 3] += frames_last_state_z
-            curr_frames[-1,0] = curr_frames[-2,0]
-            frames = np.concatenate([frames, curr_frames[frame_transition_idx_motion2:]])
+            trans_frames = curr_frames.copy()
+            trans_frames[frame_transition_idx_motion2:, 1] += frames_last_state_x
+            trans_frames[frame_transition_idx_motion2:, 3] += frames_last_state_z
+            trans_frames[-1,0] = trans_frames[-2,0]
+            frames = np.concatenate([frames, trans_frames[frame_transition_idx_motion2:]])
             print("Stage 3", frames.shape)
             clips_num_repeat[i+1] -= 1
         
         
         for rep in range(clips_num_repeat[-1]):
             frames_last_state_x, frames_last_state_z = frames[-1][1], frames[-1][3]
-            curr_frames[:,1] += frames_last_state_x
-            curr_frames[:,3] += frames_last_state_z
-            frames = np.concatenate([frames, curr_frames])  
+            trans_frames = curr_frames.copy()
+            trans_frames[:,1] += frames_last_state_x
+            trans_frames[:,3] += frames_last_state_z
+            frames = np.concatenate([frames, trans_frames])  
         
         #frames = np.concatenate([frames, np.vstack([curr_frames] * (clips_num_repeat[-1]))])
         
-        print("Inside Combine Data Class: Frames shape", frames.shape)        
+        print("Inside Combine Data Class: Frames shape", frames.shape)
+        print("X positions", frames[:,1])    
+        print("Z positions", frames[:,3])    
 
         self.dt = frames[:, 0]
-        print("self.dt", self.dt.shape, self.dt)
-        print(self.dt[:-1, None])
+        #print("self.dt", self.dt.shape, self.dt)
+        #print(self.dt[:-1, None])
         t = np.cumsum(self.dt)
         self.t = np.concatenate([[0], t])[:-1]
         self.q = frames[:, 1:]
