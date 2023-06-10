@@ -65,6 +65,7 @@ class MultiClipEnv(PylocoEnv):
         # Set maximum episode length according to motion clips
         self.clips_play_speed = reward_params["clips_play_speed"]  # play speed for motion clips
         self.clips_repeat_num = reward_params["clips_repeat_num"]  # the number of times the clip needs to be repeated
+
         self.initial_pose = np.concatenate(
             [
                 np.array([0, self._sim.nominal_base_height, 0, 0, 0, 0]),
@@ -80,6 +81,8 @@ class MultiClipEnv(PylocoEnv):
         self.frame_transition_idx = []
         #looping through the current and next motion file in the list
         for i in range(self.num_motion_clips-1):
+            
+            #loading first motion and creating its dataset and adapter
             motion_curr_path = os.path.join("data", "deepmimic", "motions", self.all_motion_clips[i])
             motion_curr_data = DeepMimicMotion(motion_curr_path)
             motion_curr_adapter = DeepMimicMotionBobAdapter(self.all_motion_clips[i], 
@@ -88,6 +91,7 @@ class MultiClipEnv(PylocoEnv):
                                                             self.joint_angle_limit_high, 
                                                             self.joint_angle_default,)
             
+            #loading second motion and creating its dataset and adapter
             motion_next_path = os.path.join("data", "deepmimic", "motions", self.all_motion_clips[i+1])
             motion_next_data = DeepMimicMotion(motion_next_path)
             motion_next_adapter = DeepMimicMotionBobAdapter(self.all_motion_clips[i+1], 
@@ -96,20 +100,24 @@ class MultiClipEnv(PylocoEnv):
                                                             self.joint_angle_limit_high, 
                                                             self.joint_angle_default,)
             
+            #comparing the euler joint angles of all the frames in both the motion to find the 
+            #index values at which motions should transition
             self.frame_transition_idx.append(find_closest_frames(
                 motion_curr_adapter.retarget_datamotion(motion_curr_data.q),
                 motion_next_adapter.retarget_datamotion(motion_next_data.q)
                 ))
-            
+
+        #creating the final motion dataset with transitions incorporated    
         self.motion = DeepMimicMotionCombine(self.all_motion_clips, 
                                              self.frame_transition_idx, 
                                              self.clips_repeat_num)
-
-
-        # self.motion = DeepMimicMotion(reward_params["motion_clips_file_path"])
+        
+        #looping is already taken care of in DeepMimicMotionCombine so the num_loop=1
         self.loop = LoopKeyframeMotionDataset(
             self.motion, num_loop=1, track_fields=[BobMotionDataFieldNames.ROOT_POS]
         )
+
+        #doing all the required interpolations
         self.lerp = LerpMotionDataset(
             self.loop,
             lerp_fields=[
@@ -133,6 +141,8 @@ class MultiClipEnv(PylocoEnv):
                 DeepMimicMotionDataFieldNames.L_SHOULDER_ROT,
             ],
         )
+
+        #adapting DeepMimic data to Bob suitable format
         self.adapter = DeepMimicMotionBobAdapter(
             reward_params["motion_clips_file_path"],
             self.num_joints,
@@ -169,7 +179,8 @@ class MultiClipEnv(PylocoEnv):
             self.phase = phase
             self.initial_time = self.phase * self.motion.duration # data scale
 
-        total_duration = self.clips_repeat_num * self.motion.duration # data
+        #total_duration = self.clips_repeat_num * self.motion.duration # data
+        total_duration = self.motion.duration
         data_duration = total_duration - self.initial_time
         sim_duration = data_duration / self.clips_play_speed
 
@@ -206,11 +217,6 @@ class MultiClipEnv(PylocoEnv):
 
         # update variables
         self.current_step += 1
-        # self.action_buffer = np.roll(self.action_buffer, self.num_joints)  # moving action buffer
-        # self.action_buffer[0 : self.num_joints] = action_applied
-
-        # Accelerate or decelerate motion clips, usually deceleration
-        # (clips_play_speed < 1 nomarlly)
         now_t = self._sim.get_time_stamp() * self.clips_play_speed
 
         """ Forwards and Inverse kinematics """

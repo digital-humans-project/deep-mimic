@@ -24,9 +24,7 @@ from pylocogym.data.deep_mimic_motion import (
 
 class DeepMimicMotionCombine(MapKeyframeMotionDataset):
     """
-    DeepMimic motion data.
-
-    It combines different motion clips.
+    Class to combines different motion clips and extract the DeepMimic data
     """
 
     SampleType = DeepMimicKeyframeMotionDataSample
@@ -37,100 +35,112 @@ class DeepMimicMotionCombine(MapKeyframeMotionDataset):
                  t0: float = 0.0,) -> None:
         super().__init__()
         self.frames_exist = False
+        
+        '''
+        Input:
+            clip_paths: list of the motion names
+            frame_transition_idx: list of all the tuples of the indexes at which motion-1 should transition to motion-2
+            clips_num_repeat: list of number of times each motion in clips_path should repeat
+        Returns:
+            Extracts data from the motion_clip files and loads and initializes all the necessary data
+        '''
 
         assert all(isinstance(elem, int) and elem > 1 
                    for elem in clips_num_repeat), "Clip repeat value must be integer and greater than 1."
         
+        #looping over all the motions needed to be concatenated
         for i in range(len(clip_paths)-1):
             motion_curr_path = os.path.join("data", "deepmimic", "motions", clip_paths[i])
             motion_next_path = os.path.join("data", "deepmimic", "motions", clip_paths[i+1])
             
-
             with open(motion_curr_path, "r") as f:
                 data = json.load(f)
             curr_frames = np.array(data["Frames"])
-            print("curr_frames", curr_frames[:,1])
             
             for rep in range(clips_num_repeat[i]-1):
                 if not self.frames_exist:
+                    #initializing frames here
                     frames = curr_frames
+                    frames[-1,0] = frames[-2, 0]
                     rep +=1
                     self.frames_exist = True
-                    print("frames", frames[:,1])
-                frames_last_state_x, frames_last_state_z = frames[-1][1], frames[-1][3]
-                print("frames_last_state_x, frames_last_state_z", frames_last_state_x, frames_last_state_z)
-                trans_frames = curr_frames.copy()
-                print("trans_frames", trans_frames[:,1])
-                trans_frames[:,1] += frames_last_state_x
-                trans_frames[:,3] += frames_last_state_z
-                trans_frames[-1,0] = trans_frames[-2,0]
-                print("trans_frames", trans_frames[:,1])
-                print("curr_frames", curr_frames[:,1])
-                frames = np.concatenate([frames, trans_frames])
-                print("current frame shape", frames.shape)  
-                    
-            # if i == 0:
-            #     frames = np.vstack([curr_frames] * (clips_num_repeat[i]-1))
-            # else:
-            #     frames = np.concatenate(
-            #         [frames, np.vstack([curr_frames] * (clips_num_repeat[i]-1))])
-            print("Stage 1", frames.shape)
+                    continue
+
+                #looping over the current motion n-1 times and appending to final frames
+                trans_frames = self.track_root_and_time(curr_frames, frames[-1][1], frames[-1][3])
+                frames = np.concatenate([frames, trans_frames]) 
             
-
+            #extracting the frame number at which current motion-1 transitions into next motion-2
             frame_transition_idx_motion1 , frame_transition_idx_motion2 = frame_transition_idx[i]
-            frames_last_state_x, frames_last_state_z = frames[-1][1], frames[-1][3]
-            trans_frames = curr_frames.copy()
-            trans_frames[:frame_transition_idx_motion1+1, 1] += frames_last_state_x
-            trans_frames[:frame_transition_idx_motion1+1, 3] += frames_last_state_z
-            trans_frames[-1,0] = trans_frames[-2,0]
+            
+            #appending only the number of frames of current motion till the transition point
+            trans_frames = self.track_root_and_time(curr_frames, frames[-1][1], frames[-1][3], 
+                                                    frame_transition_idx_motion1, "first")
             frames = np.concatenate([frames, trans_frames[:frame_transition_idx_motion1+1]])
-            print("Stage 2", frames.shape)
 
-
+            #reading and appending only onwards the frame number of motion-2 where transition occurs
             with open(motion_next_path, "r") as f:
                 data = json.load(f)
             curr_frames = np.array(data["Frames"])
-            frames_last_state_x, frames_last_state_z = frames[-1][1], frames[-1][3]
-            trans_frames = curr_frames.copy()
-            trans_frames[frame_transition_idx_motion2:, 1] += frames_last_state_x
-            trans_frames[frame_transition_idx_motion2:, 3] += frames_last_state_z
-            trans_frames[-1,0] = trans_frames[-2,0]
+            trans_frames = self.track_root_and_time(curr_frames, frames[-1][1], frames[-1][3], 
+                                                    frame_transition_idx_motion2, "second")
             frames = np.concatenate([frames, trans_frames[frame_transition_idx_motion2:]])
-            print("Stage 3", frames.shape)
             clips_num_repeat[i+1] -= 1
         
-        
+        #appending the remaining repeats of the last motion
         for rep in range(clips_num_repeat[-1]):
-            frames_last_state_x, frames_last_state_z = frames[-1][1], frames[-1][3]
-            trans_frames = curr_frames.copy()
-            trans_frames[:,1] += frames_last_state_x
-            trans_frames[:,3] += frames_last_state_z
+            trans_frames = self.track_root_and_time(curr_frames, frames[-1][1], frames[-1][3])
             frames = np.concatenate([frames, trans_frames])  
-        
-        #frames = np.concatenate([frames, np.vstack([curr_frames] * (clips_num_repeat[-1]))])
-        
-        print("Inside Combine Data Class: Frames shape", frames.shape)
-        print("X positions", frames[:,1])    
-        print("Z positions", frames[:,3])    
 
+        #extracting and initializing information related to time, q, qdot    
         self.dt = frames[:, 0]
-        #print("self.dt", self.dt.shape, self.dt)
-        #print(self.dt[:-1, None])
         t = np.cumsum(self.dt)
         self.t = np.concatenate([[0], t])[:-1]
         self.q = frames[:, 1:]
         self.qdot = np.diff(self.q, axis=0) / self.dt[:-1, None]
         self.t0 = t0
 
+    def track_root_and_time(self, curr_frames, frames_last_state_x, frames_last_state_z, 
+                            frame_transition_idx=0, frame_transition_loc="full"):
+        '''
+        Input:
+            curr_frames: frames extracted from the motion clip data
+            frames_last_state_x, frames_last_state_z: xz root position values of the previous 
+                    frame to which curr_frames will be appended
+            frame_transition_idx: index value of the frame at which the transition of motion should occur
+            frame_transition_loc: string indicating how the motion will be appending so that the
+                    root tracking can be continued accordingly
+        Returns:
+            trans_frame: the processed frames that need to be appended to the current frames
+        '''
+
+        trans_frames = curr_frames.copy()
+        trans_frames[-1,0] = trans_frames[-2,0] #to avoid divided by zero error caused due to last time frame of the motion being 0
+        
+        #updating root values based on transition type
+        if frame_transition_loc == "full": #entire current motion is repeating
+            trans_frames[:,1] += frames_last_state_x
+            trans_frames[:,3] += frames_last_state_z
+        elif frame_transition_loc == "first": #current motion is going to transition into next
+            trans_frames[:frame_transition_idx+1, 1] += frames_last_state_x
+            trans_frames[:frame_transition_idx+1, 3] += frames_last_state_z
+        elif frame_transition_loc == "second": #current motion is being transitioned into from previous
+            trans_frames[frame_transition_idx:, 1] += frames_last_state_x
+            trans_frames[frame_transition_idx:, 3] += frames_last_state_z
+        
+        return trans_frames
+        
     def __len__(self) -> int:
         # dataset length is the number of keyframes (intervals) = number of frames - 1
         return len(self.qdot)
 
     @property
     def duration(self) -> float:
+        #returns the total time of the motion
         return self.t[-1]
 
     def __getitem__(self, idx) -> DeepMimicKeyframeMotionDataSample:
+        #to get a Data Sample when provided with idx
         idx = range(len(self))[idx]
         t = self.t[idx].item()
         return DeepMimicKeyframeMotionDataSample(
