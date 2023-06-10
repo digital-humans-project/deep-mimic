@@ -23,9 +23,9 @@ def manage_save_path(log_dir, name):
 
 def train(params,
           log_path, 
-          debug, 
+          debug : bool, 
           video_recorder, 
-          wandb_log, 
+          wandb_log : bool, 
           config_path='config.json'):
     
 
@@ -55,7 +55,7 @@ def train(params,
 
     motion_clip_file = os.path.join("data", "deepmimic", "motions", motion_clip_file)
 
-    reward_params["motion_clips_file_path"] = motion_clip_file  # add reward path to reward params
+    reward_params["motion_clips_file_path"] = motion_clip_file  # add new (key, value) pair to "reward_params", which stores the reward path.
 
 
     # =============
@@ -83,7 +83,7 @@ def train(params,
                   "env_params": env_params, 
                   "reward_params": reward_params}
     
-    env = make_vec_env(
+    train_envs = make_vec_env(
         env_id,
         n_envs=n_envs,
         seed=seed,
@@ -92,8 +92,8 @@ def train(params,
     )
 
     if hyp_params["normalize_observation"] or hyp_params["normalize_reward"]:
-        env = VecNormalize(
-            env, training=True,
+        train_envs = VecNormalize(
+            train_envs, training=True,
             norm_obs=hyp_params["normalize_observation"],
             norm_reward=hyp_params["normalize_reward"]
         )
@@ -166,6 +166,8 @@ def train(params,
         activation_fn = torch.nn.SiLU
     elif model_params['activation_fn'] == 'ELU':
         activation_fn = torch.nn.ELU
+    else:
+        return ValueError(f'The provided activation function "{model_params["activation_fn"]} is not recognized.')
 
     policy_kwargs = dict(
         activation_fn=activation_fn,
@@ -178,7 +180,7 @@ def train(params,
 
     model = CustomPPO(
         CustomActorCriticPolicy,
-        env,
+        train_envs,
         learning_rate=hyp_params['learning_rate'],
         batch_size=hyp_params['batch_size'],
         n_epochs=hyp_params['n_epochs'],

@@ -71,6 +71,7 @@ class CustomActorCriticPolicy(ActorCriticPolicy):
                 module.apply(partial(self.init_weights, gain=gain))
 
         # Setup optimizer with initial learning rate
+        #* This is where novel code has been written!
         params = self.get_parameter_groups()
         params = [dict(params=p, name=n, lr=lr_schedule[n]) for n, p in params.items()]
         num_params = sum([len(g["params"]) for g in params])

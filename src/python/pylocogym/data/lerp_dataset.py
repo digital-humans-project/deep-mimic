@@ -104,9 +104,9 @@ def alerp(a, b, alpha, shortest_path=True):
     Angular linear interpolation between two angles `a` and `b` with weight `alpha`.
     """
     if shortest_path:
-        pi2 = 2 * np.pi
-        da = (b - a) % pi2
-        return a + alpha * (2 * da % pi2 - da)
+        pi2 = 2 * np.pi # 2π is the maximum allowed angle in circle.
+        da = (b - a) % pi2 # Computes the angle difference in a single circle (discounts full rotations)
+        return a + alpha * (2 * da % pi2 - da) # Start from a. Track the arc until b is reached.
     else:
         return a + alpha * (b - a)
 

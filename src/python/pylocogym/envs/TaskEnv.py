@@ -1,12 +1,12 @@
 import importlib.util
 import sys
-from importlib.machinery import SourceFileLoader
 from typing import List
 
 import numpy as np
-
+from gym import spaces
 from ..cmake_variables import PYLOCO_LIB_PATH
-from .PylocoEnv import PylocoEnv
+from .VanillaEnv import VanillaEnv
+from scipy.spatial.transform import Rotation
 
 # importing pyloco
 spec = importlib.util.spec_from_file_location("pyloco", PYLOCO_LIB_PATH)
@@ -14,119 +14,120 @@ pyloco = importlib.util.module_from_spec(spec)
 sys.modules["module.name"] = pyloco
 spec.loader.exec_module(pyloco)
 
-
-from pylocogym.data.deep_mimic_bob_adapter import (
-    BobMotionDataFieldNames,
-    DeepMimicMotionBobAdapter,
-)
-from pylocogym.data.deep_mimic_motion import DeepMimicMotion, DeepMimicMotionDataFieldNames
-from pylocogym.data.lerp_dataset import LerpMotionDataset
-from pylocogym.data.loop_dataset import LoopKeyframeMotionDataset
-from pylocogym.envs.rewards.bob.humanoid_reward import Reward
+from pylocogym.envs.rewards.bob.humanoid_reward_task import TaskReward
 
 
-class VanillaEnv(PylocoEnv):
-    def __init__(self, max_episode_steps, env_params, reward_params, enable_rand_init=True):
-        sim_dt = 1.0 / env_params["simulation_rate"]
-        con_dt = 1.0 / env_params["control_rate"]
+class TaskEnv(VanillaEnv):
+    """
+    The task that the agent is obligated to follow in the current implementation of the environment is a heading direction.
+    """
+    def __init__(self, 
+                 max_episode_steps, 
+                 env_params, reward_params, 
+                 enable_rand_init=True,
+                 add_task_obs=True,
+                 pretrained_model=None):
+        
+        self.add_task_obs = add_task_obs
+        self.heading_angle = 0
+        self.heading_vector = np.array([0,1])
+        
+        super().__init__(max_episode_steps, env_params, reward_params, enable_rand_init)
+        
+        self.reward_utils = TaskReward(
+                self.cnt_timestep_size,
+                self.num_joints,
+                self.adapter.mimic_joints_index,
+                reward_params,
+                self.add_task_obs
+            )
+        
+        if self.add_task_obs:
+            self.augment_obs_space()
+            
+        
+    def augment_obs_space(self):
+        """
+        Augments (appends) the observation space to include the newly introduced  heading direction.
+        """
+        self.observation_low = np.concatenate((
+            self.observation_low,
+            np.array([-1,-1]),  # heading direction
+            np.float64(-np.pi)    # heading angle
+        ),axis=None)
 
-        # if env_params['robot_model'] == "Dog":
-        #     robot_id = 0
-        # elif env_params['robot_model'] == "Go1":
-        #     robot_id = 1
-        # elif env_params['robot_model'] == "Bob":
-        robot_id = 2
+        self.observation_high = np.concatenate((
+            self.observation_high,
+            np.array([1,1]),  # heading direction
+            np.float64(np.pi)     # heading angle
+        ),axis=None)
+        
+        self.observation_space = spaces.Box(
+            low=self.observation_low,
+            high=self.observation_high,
+            shape=(len(self.observation_low),),
+            dtype=np.float64)   
 
-        loadVisuals = False
-        super().__init__(pyloco.VanillaSimulator(sim_dt, con_dt, robot_id, loadVisuals), env_params, max_episode_steps)
+    def get_obs(self):
+        """
+        Augments (appends) the observation to include the newly introduced  heading direction.
+        """
+        obs =  super().get_obs()
+        obs = np.concatenate((obs,self.heading_vector,self.heading_angle), axis=None)
+        return obs
 
-        self.enable_rand_init = enable_rand_init
+    def rotate_coordinate(self, q, qdot):
+        
+        # Extract rotation matrix of the angle
+        R_heading = Rotation.from_rotvec(self.heading_angle * np.array([0, 1, 0]))
+        
+        # The "forward" direction is the z-axis.
+        self.heading_vector = R_heading.apply(np.array([0,0,1]))
+        self.heading_vector = self.heading_vector[[0,2]] # Remove the y-coordinate of the velocity, as the agent cannot fly.
+        R_now = Rotation.from_euler("YXZ",q[3:6])
+        R = R_heading*R_now # Compose the rotation R_now -> R_heading.
+        
+        q[0:3] =  R_heading.apply(q[0:3]) # Apply heading rotation on the full motion clip. Intuition is easier if reminded that q is w.r.t world coordinates.
+        q[3:6] = R.as_euler("YXZ") # Apply the full rotation on the *yaw, pitch & roll* of the agent. Essentially, this orients the agent.
+        qdot[0:3] = R_heading.apply(qdot[0:3]) # Make the linear velocity vector "turn" to align with the "self.heading_angle".
+        #not calculating the qdot angular velocity values, need to change order of axes before doing so
+        # qdot[3:6] = R_heading.apply(qdot[3:6])
 
-        self._sim.lock_selected_joints = env_params.get("lock_selected_joints", False)
-        self.enable_box_throwing = env_params.get("enable_box_throwing", False)
-        self.box_throwing_interval = 100
-        self.box_throwing_strength = 2
-        self.box_throwing_counter = 0
+        return q, qdot
 
-        self.cnt_timestep_size = self._sim.control_timestep_size  # this should be equal to con_dt
-        self.current_step = 0
+    def get_initial_state(self, initial_time):
+        # Get desired root state, joint state according to phase
+        now_t = initial_time
 
-        self.reward_params = reward_params
-        self.sum_episode_reward_terms = {}
-        self.sum_episode_err_terms = {}
+        # Load retargeted data
+        res = self.lerp.eval(now_t)
+        assert res is not None
+        sample, kf = res
+        sample_retarget = self.adapter.adapt(sample, kf)  # type: ignore # data after retargeting
+        
+        q_reset = sample_retarget.q
+        qdot_reset = sample_retarget.qdot
+        qdot_reset = qdot_reset * self.clips_play_speed
 
-        # self.action_buffer = np.zeros(self.num_joints * 3)  # history of actions [current, previous, past previous]
-
-        self.rng = np.random.default_rng(env_params.get("seed", 1))  # create a local random number generator with seed
-
-        # Set maximum episode length according to motion clips
-        self.clips_play_speed = reward_params["clips_play_speed"]  # play speed for motion clips
-        self.clips_play_speed = reward_params["clips_play_speed"]  # play speed for motion clips
-        self.clips_repeat_num = reward_params["clips_repeat_num"]  # the number of times the clip needs to be repeated
-        self.initial_pose = np.concatenate(
-            [
-                np.array([0, self._sim.nominal_base_height, 0, 0, 0, 0]),
-                self.joint_angle_default,
-            ]
-        )
-
-        # Dataloader
-        self.motion = DeepMimicMotion(reward_params["motion_clips_file_path"])
-        self.loop = LoopKeyframeMotionDataset(
-            self.motion, num_loop=self.clips_repeat_num, track_fields=[BobMotionDataFieldNames.ROOT_POS]
-        )
-        self.lerp = LerpMotionDataset(
-            self.loop,
-            lerp_fields=[
-                DeepMimicMotionDataFieldNames.ROOT_POS,
-            ],
-            alerp_fields=[
-                DeepMimicMotionDataFieldNames.R_KNEE_ROT,
-                DeepMimicMotionDataFieldNames.L_KNEE_ROT,
-                DeepMimicMotionDataFieldNames.R_ELBOW_ROT,
-                DeepMimicMotionDataFieldNames.L_ELBOW_ROT,
-            ],
-            slerp_fields=[
-                DeepMimicMotionDataFieldNames.ROOT_ROT,
-                DeepMimicMotionDataFieldNames.CHEST_ROT,
-                DeepMimicMotionDataFieldNames.NECK_ROT,
-                DeepMimicMotionDataFieldNames.R_HIP_ROT,
-                DeepMimicMotionDataFieldNames.R_ANKLE_ROT,
-                DeepMimicMotionDataFieldNames.R_SHOULDER_ROT,
-                DeepMimicMotionDataFieldNames.L_HIP_ROT,
-                DeepMimicMotionDataFieldNames.L_ANKLE_ROT,
-                DeepMimicMotionDataFieldNames.L_SHOULDER_ROT,
-            ],
-        )
-        self.adapter = DeepMimicMotionBobAdapter(
-            reward_params["motion_clips_file_path"],
-            self.num_joints,
-            self.joint_angle_limit_low,
-            self.joint_angle_limit_high,
-            self.joint_angle_default,
-            # initial_pose=self.initial_pose,
-        )
-
-
-        # Reward class
-        self.reward_utils = Reward(
-            self.cnt_timestep_size,
-            self.num_joints,
-            self.adapter.mimic_joints_index,
-            reward_params,
-        )
-
-        # Forwards Kinematics class
-        # self.fk = ForwardKinematics(env_params["urdf_path"])
-        self.minimum_height = 0.009
-
+        return self.rotate_coordinate(q_reset, qdot_reset)
+    
     def reset(self, seed=None, return_info=False, options=None, phase=0):
         # super().reset(seed=seed)  # We need this line to seed self.np_random
         self.current_step = 0
         self.box_throwing_counter = 0
         self.lerp.reset()  # reset dataloader
 
+        # At the beginning of each episode, an initial heading angle in the semicircle is sampled.
+        # The model will attempt to follow this direction for the whole duration of the episode,
+        # The (uniform) sampling is done, so as to explore the solution space and make the model generalizable and robust.
+        self.heading_angle = np.random.uniform(-np.pi/2, np.pi/2)
         # self.phase = self.sample_initial_state()
+        # Have the episode run starting from a random frame of the motion clip.
+        # This is so that the agent adapts their parameterization (e.g. NN weights) in such a way that they can handle the motion holistically.
+        # As a counter argument, if the agent were to always start from a single, predetermined phase (e.g. at the beginning of them motion),
+        # then the agent would first learn to tackle the first few frames starting from the predetermined phase,
+        # but then having to significantly tweak its parameterization to handle the full motion.
+        # In a nutshell, this is done in the hopes that the agent converges faster to the desired solution.
         if self.enable_rand_init:
             self.initial_time = np.random.uniform(0, self.motion.duration-self.cnt_timestep_size)
             self.phase = self.initial_time / self.motion.duration
@@ -139,7 +140,7 @@ class VanillaEnv(PylocoEnv):
         sim_duration = data_duration / self.clips_play_speed
 
 
-        # Maximum episdode step
+        # Maximum episode step
         self.max_episode_steps = int(sim_duration / self.cnt_timestep_size)
         assert self.max_episode_steps > 0, "max_episode_steps should be positive"
 
@@ -178,7 +179,7 @@ class VanillaEnv(PylocoEnv):
         # (clips_play_speed < 1 nomarlly)
         now_t = self._sim.get_time_stamp() * self.clips_play_speed
 
-        """ Forward and Inverse kinematics """
+        """ Forwards and Inverse kinematics """
         # Load retargeted data
         res = self.lerp.eval(now_t)
         assert res is not None, "lerp.eval(now_t) is None"
@@ -192,6 +193,7 @@ class VanillaEnv(PylocoEnv):
         #                                       end_effectors_pos[2,:],
         #                                       end_effectors_pos[3,:])
 
+        (sample_retarget.q, sample_retarget.qdot) = self.rotate_coordinate(sample_retarget.q, sample_retarget.qdot)
         end_effectors_raw = self._sim.get_fk_ee_pos(sample_retarget.q)
         end_effectors_pos = np.array(
             [end_effectors_raw[0], end_effectors_raw[2], end_effectors_raw[1], end_effectors_raw[3]]
@@ -247,9 +249,3 @@ class VanillaEnv(PylocoEnv):
 
         return observation, reward, done, info
 
-    def filter_actions(self, action_new, action_old, max_joint_vel):
-        # with this filter we have much fewer cases that joints cross their limits, but still not zero
-        threshold = max_joint_vel * np.ones(self.num_joints)  # max angular joint velocity
-        diff = action_new - action_old
-        action_filtered = action_old + np.sign(diff) * np.minimum(np.abs(diff), threshold)
-        return action_filtered
