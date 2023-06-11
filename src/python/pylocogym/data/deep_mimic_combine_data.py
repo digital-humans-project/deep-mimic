@@ -90,7 +90,12 @@ class DeepMimicMotionCombine(MapKeyframeMotionDataset):
         #appending the remaining repeats of the last motion
         for rep in range(clips_num_repeat[-1]):
             trans_frames = self.track_root_and_time(curr_frames, frames[-1][1], frames[-1][3])
-            frames = np.concatenate([frames, trans_frames])  
+            frames = np.concatenate([frames, trans_frames])
+
+        #dumping data into json file
+        json_save_path =  "".join([name.replace("humanoid3d_","").replace(".txt","") 
+                                   for name in clip_paths])+str("_multiclip.txt")
+        self.create_new_datafile("none", frames.copy(), json_save_path)
 
         #extracting and initializing information related to time, q, qdot    
         self.dt = frames[:, 0]
@@ -129,6 +134,16 @@ class DeepMimicMotionCombine(MapKeyframeMotionDataset):
             trans_frames[frame_transition_idx:, 3] += frames_last_state_z
         
         return trans_frames
+    
+    def create_new_datafile(self, loop, frames, json_save_path):
+ 
+        save_path = os.path.join('data/deepmimic/motions/', json_save_path)
+        data = {
+            "Loop": loop,
+            "Frames": frames
+        }
+        with open(save_path, 'w') as file:
+            json.dump(data, file)
         
     def __len__(self) -> int:
         # dataset length is the number of keyframes (intervals) = number of frames - 1
