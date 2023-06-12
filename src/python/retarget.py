@@ -18,7 +18,7 @@ def test(params, motion_clips_path=None, urdf_path = None):
 
     max_episode_steps = hyp_params.get('max_episode_steps', 5000)
     seed = hyp_params.get("seed", 313)
-    env_kwargs = {"max_episode_steps": max_episode_steps, "env_params": env_params, "reward_params": reward_params,"enable_rand_init": True}
+    env_kwargs = {"max_episode_steps": max_episode_steps, "env_params": env_params, "reward_params": reward_params,"enable_rand_init": False}
 
     if motion_clips_path is not None:
         reward_params["motion_clips_file_path"] = motion_clips_path  # add reward path to reward params
@@ -53,9 +53,7 @@ def test(params, motion_clips_path=None, urdf_path = None):
         while not done:
             eval_env.envs[0].render("human")
             sample, kf = eval_env.envs[0].lerp.eval(t)
-            temp = eval_env.envs[0].adapter.adapt(sample, kf)
-            (q,qdot) = eval_env.envs[0].rotate_coordinate(temp.q, temp.qdot)
-            action = q[6:]
+            action = eval_env.envs[0].adapter.adapt(sample, kf).q[6:]
             # action = eval_env.envs[0].lerp.eval(t).q[6:]
             obs, reward, done, info = eval_env.envs[0].step(action)
             # print("now time, now phase", obs[-2],obs[-1])
@@ -77,7 +75,7 @@ def play_motion(params, motion_clips_path=None, urdf_path = None):
 
     max_episode_steps = hyp_params.get('max_episode_steps', 5000)
     seed = hyp_params.get("seed", 313)
-    env_kwargs = {"max_episode_steps": max_episode_steps, "env_params": env_params, "reward_params": reward_params, "enable_rand_init": True}
+    env_kwargs = {"max_episode_steps": max_episode_steps, "env_params": env_params, "reward_params": reward_params, "enable_rand_init": False}
 
     if motion_clips_path is not None:
         reward_params["motion_clips_file_path"] = motion_clips_path  # add reward path to reward params
@@ -121,7 +119,7 @@ def play_motion(params, motion_clips_path=None, urdf_path = None):
             eval_env.envs[0].render("human")
             # t1 += 1.0/(frame_rate)
             # t2 += 1.0/frame_rate
-            time.sleep(1)
+            # time.sleep(0.01)
     eval_env.close()
 
 

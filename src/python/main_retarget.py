@@ -4,14 +4,15 @@ import json
 import matplotlib
 matplotlib.use("Agg")
 
-import retarget
-from pylocogym.cmake_variables import *
+from src.python import retarget
+from src.python.pylocogym.cmake_variables import *
 
 
 if __name__ == "__main__":
 
-    motion_clip_file = "humanoid3d_walk.txt"
-    config = "bob_env_walk_task.json"
+    motion_clip_file = "humanoid3d_jog.txt"
+    #motion_clip_file = "jogwalk_multiclip.txt"
+    config = "bob_env_walk.json"
     # urdf_file = "data/robots/deep-mimic/humanoid.urdf"
 
     # log path

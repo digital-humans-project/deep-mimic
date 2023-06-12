@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import ClassVar, Dict, Literal, Optional, Tuple, Union
 
 import numpy as np
-from pylocogym.data.dataset import (
+from src.python.pylocogym.data.dataset import (
     Fields,
     KeyframeMotionDataSample,
     MapKeyframeMotionDataset,
@@ -14,7 +14,7 @@ from pylocogym.data.dataset import (
     StrEnum,
 )
 
-from pylocogym.data.deep_mimic_motion import (
+from src.python.pylocogym.data.deep_mimic_motion import (
     DeepMimicMotionDataFieldNames,
     DeepMimicMotionDataField,
     DeepMimicMotionDataSample,
