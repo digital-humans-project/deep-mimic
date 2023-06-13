@@ -33,7 +33,7 @@
   "reward_params": {
 
     "clips_play_speed": 1,
-    "clips_repeat_num": [4, 4],
+    "clips_repeat_num": [3, 3],
     
     "fwd_vel_cmd": 0.0,
     "weight_com": 0.1,

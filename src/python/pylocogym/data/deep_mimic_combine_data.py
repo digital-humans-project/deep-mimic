@@ -95,7 +95,7 @@ class DeepMimicMotionCombine(MapKeyframeMotionDataset):
         #dumping data into json file
         json_save_path =  "".join([name.replace("humanoid3d_","").replace(".txt","") 
                                    for name in clip_paths])+str("_multiclip.txt")
-        self.create_new_datafile("none", frames.copy(), json_save_path)
+        self.create_new_datafile("none", frames.copy().tolist(), json_save_path)
 
         #extracting and initializing information related to time, q, qdot    
         self.dt = frames[:, 0]
@@ -136,14 +136,14 @@ class DeepMimicMotionCombine(MapKeyframeMotionDataset):
         return trans_frames
     
     def create_new_datafile(self, loop, frames, json_save_path):
- 
+
         save_path = os.path.join('data/deepmimic/motions/', json_save_path)
         data = {
             "Loop": loop,
             "Frames": frames
         }
         with open(save_path, 'w') as file:
-            json.dump(data, file)
+            json.dump(data, file, indent=len(frames)+1)
         
     def __len__(self) -> int:
         # dataset length is the number of keyframes (intervals) = number of frames - 1
