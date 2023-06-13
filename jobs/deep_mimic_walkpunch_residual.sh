@@ -9,4 +9,6 @@
 #SBATCH --error=./out/deep_mimic_walkpunch_residual.err
 #SBATCH --gpus=1
 
+
+source scripts/setup.sh
 xvfb-run -a --server-args="-screen 0 480x480x24" python -u src/python/main.py -wb -vr -c bob_env_multi_walkpunch_residual.json
