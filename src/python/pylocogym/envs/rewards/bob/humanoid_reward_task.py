@@ -2,7 +2,7 @@
 Computing reward for Vanilla setup, constant target speed, gaussian kernels
 """
 import numpy as np
-from src.python.pylocogym.envs.rewards.utils.utils import *
+from pylocogym.envs.rewards.utils.utils import *
 from scipy.spatial.transform import Rotation
 from .humanoid_reward import Reward
 

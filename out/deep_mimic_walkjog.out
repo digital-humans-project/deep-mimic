@@ -1,0 +1,108 @@
+- config file path = /cluster/home/anghosh/DHProject/deep-mimic/data/conf/bob_env_multi_walkjog.json
+wandb: Currently logged in as: ankitaghosh0907 (dh-project). Use `wandb login --relogin` to force relogin
+wandb: wandb version 0.15.4 is available!  To upgrade, please run:
+wandb:  $ pip install wandb --upgrade
+wandb: Tracking run with wandb version 0.15.3
+wandb: Run data is saved locally in /cluster/home/anghosh/DHProject/deep-mimic/log/wandb/run-20230612_023623-3kvcjytv
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run 2023-06-12-02-36-15-PylocoMultiClip-v0-['humanoid3d_jog.txt', 'humanoid3d_walk.txt']-100.0M_1
+wandb: ⭐️ View project at https://wandb.ai/dh-project/DH-Project
+wandb: 🚀 View run at https://wandb.ai/dh-project/DH-Project/runs/3kvcjytv
+wandb: WARNING Saving files without folders. If you want to preserve sub directories pass base_path to wandb.save, i.e. wandb.save("/mnt/folder/file.h5", base_path="/mnt")
+Ignoring input line: position 0 0.90 0
+Ignoring input line: position 0 0.90 0
+Ignoring input line: position 0 0.90 0
+Ignoring input line: position 0 0.90 0
+Ignoring input line: position 0 0.90 0
+Ignoring input line: position 0 0.90 0
+Ignoring input line: position 0 0.90 0
+Ignoring input line: position 0 0.90 0
+Ignoring input line: position 0 0.90 0
+Ignoring input line: position 0 0.90 0
+Ignoring input line: position 0 0.90 0
+Ignoring input line: position 0 0.90 0
+Ignoring input line: position 0 0.90 0
+Ignoring input line: position 0 0.90 0
+Ignoring input line: position 0 0.90 0
+Ignoring input line: position 0 0.90 0
+Ignoring input line: position 0 0.90 0
+Ignoring input line: position 0 0.90 0
+Ignoring input line: position 0 0.90 0
+Ignoring input line: position 0 0.90 0
+Ignoring input line: position 0 0.90 0
+Ignoring input line: position 0 0.90 0
+Logging to /cluster/home/anghosh/DHProject/deep-mimic/log/2023-06-12-02-36-15-PylocoMultiClip-v0-['humanoid3d_jog.txt', 'humanoid3d_walk.txt']-100.0M_1
+/cluster/home/anghosh/venv/lib64/python3.9/site-packages/stable_baselines3/common/callbacks.py:345: UserWarning: Training and eval env are not of the same type<stable_baselines3.common.vec_env.subproc_vec_env.SubprocVecEnv object at 0x2abda1ea9670> != <stable_baselines3.common.vec_env.vec_video_recorder.VecVideoRecorder object at 0x2abda1e9b2e0>
+  warnings.warn("Training and eval env are not of the same type" f"{self.training_env} != {self.eval_env}")
+--------------------------------------
+| err_terms/              |          |
+|    com_err              | 0.467    |
+|    end_effectors_err    | 2        |
+|    height_err           | 0.032    |
+|    joints_err           | 1.64     |
+|    joints_vel_err       | 148      |
+|    root_ori_err         | 0.1      |
+| reward_terms/           |          |
+|    com_reward           | 0.0237   |
+|    end_effectors_reward | 0.0205   |
+|    height_reward        | 0.0931   |
+|    joints_reward        | 0.0483   |
+|    joints_vel_reward    | 3.55e-05 |
+|    root_ori_reward      | 0.0122   |
+|    smoothness1_reward   | 0        |
+|    smoothness2_reward   | 0        |
+|    smoothness_reward    | 0        |
+| rollout/                |          |
+|    ep_len_mean          | 59.3     |
+|    ep_rew_mean          | 11.2     |
+| time/                   |          |
+|    collect_time         | 110      |
+|    fps                  | 741      |
+|    iterations           | 1        |
+|    time_elapsed         | 110      |
+|    total_timesteps      | 81920    |
+--------------------------------------
+------------------------------------------
+| err_terms/               |             |
+|    com_err               | 0.726       |
+|    end_effectors_err     | 3.97        |
+|    height_err            | -0.018      |
+|    joints_err            | 1.57        |
+|    joints_vel_err        | 140         |
+|    root_ori_err          | 0.183       |
+| reward_terms/            |             |
+|    com_reward            | 0.0145      |
+|    end_effectors_reward  | 0.0143      |
+|    height_reward         | 0.0816      |
+|    joints_reward         | 0.0427      |
+|    joints_vel_reward     | 1.26e-05    |
+|    root_ori_reward       | 0.00994     |
+|    smoothness1_reward    | 0           |
+|    smoothness2_reward    | 0           |
+|    smoothness_reward     | 0           |
+| rollout/                 |             |
+|    ep_len_mean           | 60.5        |
+|    ep_rew_mean           | 11.3        |
+| time/                    |             |
+|    collect_time          | 111         |
+|    evaluate_actions_time | 0.002       |
+|    fps                   | 647         |
+|    iterations            | 2           |
+|    time_elapsed          | 252         |
+|    total_timesteps       | 163840      |
+|    train_time            | 31.2        |
+| train/                   |             |
+|    approx_kl             | 0.046534117 |
+|    clip_fraction         | 0.36        |
+|    clip_range            | 0.2         |
+|    entropy_loss          | -5.22       |
+|    explained_variance    | -0.103      |
+|    learning_rate_log_std | 0.0003      |
+|    learning_rate_policy  | 5e-05       |
+|    learning_rate_value   | 0.01        |
+|    loss                  | -0.0578     |
+|    n_updates             | 10          |
+|    policy_gradient_loss  | -0.0521     |
+|    std                   | 0.272       |
+|    value_loss            | 0.944       |
+------------------------------------------

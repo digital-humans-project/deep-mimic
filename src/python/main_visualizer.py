@@ -5,7 +5,7 @@ import matplotlib
 matplotlib.use("Agg")
 
 import visualizer
-from src.python.pylocogym.cmake_variables import *
+from pylocogym.cmake_variables import *
 
 
 if __name__ == "__main__":

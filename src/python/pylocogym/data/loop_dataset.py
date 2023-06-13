@@ -1,6 +1,6 @@
 from typing import List
 
-from src.python.pylocogym.data.dataset import IterableKeyframeMotionDataset
+from pylocogym.data.dataset import IterableKeyframeMotionDataset
 
 
 class LoopKeyframeMotionDataset(IterableKeyframeMotionDataset):

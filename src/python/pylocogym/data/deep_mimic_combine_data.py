@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import ClassVar, Dict, Literal, Optional, Tuple, Union
 
 import numpy as np
-from src.python.pylocogym.data.dataset import (
+from pylocogym.data.dataset import (
     Fields,
     KeyframeMotionDataSample,
     MapKeyframeMotionDataset,
@@ -14,7 +14,7 @@ from src.python.pylocogym.data.dataset import (
     StrEnum,
 )
 
-from src.python.pylocogym.data.deep_mimic_motion import (
+from pylocogym.data.deep_mimic_motion import (
     DeepMimicMotionDataFieldNames,
     DeepMimicMotionDataField,
     DeepMimicMotionDataSample,
@@ -96,9 +96,6 @@ class DeepMimicMotionCombine(MapKeyframeMotionDataset):
             trans_frames = self.track_root_and_time(curr_frames, frames[-1][1], frames[-1][3])
             frames = np.concatenate([frames, trans_frames])
 
-        print("frames_shape",frames.shape)
-        print("frames_time", frames[:,0])
-        print("frames x and z positions", frames[:,1], frames[:,3])
         #dumping data into json file
         json_save_path =  "".join([name.replace("humanoid3d_","").replace(".txt","").replace("_","") 
                                    for name in clip_paths])+str("_multiclip.txt")

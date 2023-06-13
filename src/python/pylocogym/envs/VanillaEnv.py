@@ -15,14 +15,14 @@ sys.modules["module.name"] = pyloco
 spec.loader.exec_module(pyloco)
 
 
-from src.python.pylocogym.data.deep_mimic_bob_adapter import (
+from pylocogym.data.deep_mimic_bob_adapter import (
     BobMotionDataFieldNames,
     DeepMimicMotionBobAdapter,
 )
-from src.python.pylocogym.data.deep_mimic_motion import DeepMimicMotion, DeepMimicMotionDataFieldNames
-from src.python.pylocogym.data.lerp_dataset import LerpMotionDataset
-from src.python.pylocogym.data.loop_dataset import LoopKeyframeMotionDataset
-from src.python.pylocogym.envs.rewards.bob.humanoid_reward import Reward
+from pylocogym.data.deep_mimic_motion import DeepMimicMotion, DeepMimicMotionDataFieldNames
+from pylocogym.data.lerp_dataset import LerpMotionDataset
+from pylocogym.data.loop_dataset import LoopKeyframeMotionDataset
+from pylocogym.envs.rewards.bob.humanoid_reward import Reward
 
 
 class VanillaEnv(PylocoEnv):

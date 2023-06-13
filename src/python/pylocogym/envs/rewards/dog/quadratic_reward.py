@@ -3,7 +3,7 @@ Computing reward for Vanilla setup, constant target speed, quadratic kernels
 """
 import numpy as np
 from numpy.linalg import norm
-from src.python.pylocogym.envs.rewards.utils.utils import *
+from pylocogym.envs.rewards.utils.utils import *
 
 import pickle
 import time

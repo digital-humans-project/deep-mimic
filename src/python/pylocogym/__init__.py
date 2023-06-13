@@ -1,1 +1,1 @@
-from src.python.pylocogym.envs import *
+from pylocogym.envs import *

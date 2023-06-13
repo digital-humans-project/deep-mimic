@@ -14,7 +14,7 @@ pyloco = importlib.util.module_from_spec(spec)
 sys.modules["module.name"] = pyloco
 spec.loader.exec_module(pyloco)
 
-from src.python.pylocogym.envs.rewards.bob.humanoid_reward_task import TaskReward
+from pylocogym.envs.rewards.bob.humanoid_reward_task import TaskReward
 
 
 class TaskEnv(VanillaEnv):

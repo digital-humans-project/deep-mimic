@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import ClassVar, Dict, Literal, Optional, Tuple, Union
 
 import numpy as np
-from src.python.pylocogym.data.dataset import (
+from pylocogym.data.dataset import (
     Fields,
     KeyframeMotionDataSample,
     MapKeyframeMotionDataset,
