@@ -3,7 +3,7 @@ import pickle
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from pylocogym.envs.rewards.dog import gaussian_reward as reward
+from src.python.pylocogym.envs.rewards.dog import gaussian_reward as reward
 
 
 pickle_path = '/pickled_files/test_data_dog_gaussian1678969681.2247353.pickle'

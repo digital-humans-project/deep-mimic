@@ -6,7 +6,7 @@ import matplotlib
 matplotlib.use("Agg")
 
 import scripts
-from pylocogym.cmake_variables import *
+from src.python.pylocogym.cmake_variables import *
 
 
 if __name__ == "__main__":

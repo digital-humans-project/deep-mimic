@@ -3,7 +3,7 @@ import pickle
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from pylocogym.envs.rewards.bob import humanoid_reward as reward
+from src.python.pylocogym.envs.rewards.bob import humanoid_reward as reward
 
 pickle_path = '/pickled_files/test_data_bob1679334591.29026.pickle'
 cfp = os.path.dirname(__file__)

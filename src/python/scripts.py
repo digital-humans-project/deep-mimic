@@ -8,8 +8,8 @@ from stable_baselines3.common import utils
 from stable_baselines3.common.logger import configure
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv, VecNormalize, VecVideoRecorder
-from pylocogym.callbacks import RecordEvalCallback, TensorboardCallback, CheckpointSaveCallback
-from pylocogym.algorithms import CustomPPO, CustomActorCriticPolicy
+from src.python.pylocogym.callbacks import RecordEvalCallback, TensorboardCallback, CheckpointSaveCallback
+from src.python.pylocogym.algorithms import CustomPPO, CustomActorCriticPolicy
 
 
 def manage_save_path(log_dir, name):

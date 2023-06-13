@@ -14,7 +14,7 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 
-from pylocogym.data.dataset import IterableKeyframeMotionDataset, KeyframeMotionDataSample, MotionDataSample
+from src.python.pylocogym.data.dataset import IterableKeyframeMotionDataset, KeyframeMotionDataSample, MotionDataSample
 
 
 class ContinuousMotionDataset:

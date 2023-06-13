@@ -4,13 +4,13 @@ from pathlib import Path
 from typing import ClassVar, Dict, Tuple, Union
 
 import numpy as np
-from pylocogym.data.dataset import (
+from src.python.pylocogym.data.dataset import (
     Fields,
     KeyframeMotionDataSample,
     MotionDataSample,
     StrEnum,
 )
-from pylocogym.data.deep_mimic_motion import DeepMimicKeyframeMotionDataSample, DeepMimicMotion, DeepMimicMotionDataSample
+from src.python.pylocogym.data.deep_mimic_motion import DeepMimicKeyframeMotionDataSample, DeepMimicMotion, DeepMimicMotionDataSample
 from scipy.spatial.transform import Rotation as R
 
 
