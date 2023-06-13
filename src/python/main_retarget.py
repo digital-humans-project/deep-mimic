@@ -10,8 +10,10 @@ from src.python.pylocogym.cmake_variables import *
 
 if __name__ == "__main__":
 
-    motion_clip_file = "humanoid3d_jog.txt"
+    #motion_clip_file = "humanoid3d_jog.txt"
     #motion_clip_file = "jogwalk_multiclip.txt"
+    motion_clip_file = "amass/humanoid3d_walk_to_ready_mirror.txt"
+    #motion_clip_file = "sie/sie_humanoid3d_punch_forward02.txt"
     config = "bob_env_walk.json"
     # urdf_file = "data/robots/deep-mimic/humanoid.urdf"
 
@@ -38,7 +40,7 @@ if __name__ == "__main__":
     dir_name = "{id}-{rew}-{steps:.1f}M".format(id=params['env_id'], rew=motion_clip_file, steps=float(steps / 1e6))
 
     # Play environment
-    retarget.test(
+    retarget.play_motion(
         params=params,
         motion_clips_path=motion_clip_file,
     )
