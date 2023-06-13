@@ -12,7 +12,10 @@ def find_closest_frames(motion1, motion2):
     '''
 
     #calculating euclidean distance between all the pairs of frames of both motions
+    motion1 = motion1[:,6:]
+    motion2 = motion2[:,6:]
     dist_arr = distance.cdist(motion1, motion2, 'euclidean')
     frame_idx = np.unravel_index(np.argmin(dist_arr, axis=None), dist_arr.shape)
+    print(frame_idx)
     return frame_idx
 

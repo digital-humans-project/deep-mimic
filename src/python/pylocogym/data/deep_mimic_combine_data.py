@@ -45,8 +45,8 @@ class DeepMimicMotionCombine(MapKeyframeMotionDataset):
             Extracts data from the motion_clip files and loads and initializes all the necessary data
         '''
 
-        assert all(isinstance(elem, int) and elem > 1 
-                   for elem in clips_num_repeat), "Clip repeat value must be integer and greater than 1."
+        # assert all(isinstance(elem, int) and elem > 1 
+        #            for elem in clips_num_repeat), "Clip repeat value must be integer and greater than 1."
         
         #looping over all the motions needed to be concatenated
         for i in range(len(clip_paths)-1):
@@ -74,9 +74,13 @@ class DeepMimicMotionCombine(MapKeyframeMotionDataset):
             frame_transition_idx_motion1 , frame_transition_idx_motion2 = frame_transition_idx[i]
             
             #appending only the number of frames of current motion till the transition point
-            trans_frames = self.track_root_and_time(curr_frames, frames[-1][1], frames[-1][3], 
+            if not self.frames_exist:
+                frames = curr_frames[:frame_transition_idx_motion1+1]
+                self.frames_exist = True
+            else:
+                trans_frames = self.track_root_and_time(curr_frames, frames[-1][1], frames[-1][3], 
                                                     frame_transition_idx_motion1, "first")
-            frames = np.concatenate([frames, trans_frames[:frame_transition_idx_motion1+1]])
+                frames = np.concatenate([frames, trans_frames[:frame_transition_idx_motion1+1]])
 
             #reading and appending only onwards the frame number of motion-2 where transition occurs
             with open(motion_next_path, "r") as f:
@@ -92,8 +96,11 @@ class DeepMimicMotionCombine(MapKeyframeMotionDataset):
             trans_frames = self.track_root_and_time(curr_frames, frames[-1][1], frames[-1][3])
             frames = np.concatenate([frames, trans_frames])
 
+        print("frames_shape",frames.shape)
+        print("frames_time", frames[:,0])
+        print("frames x and z positions", frames[:,1], frames[:,3])
         #dumping data into json file
-        json_save_path =  "".join([name.replace("humanoid3d_","").replace(".txt","") 
+        json_save_path =  "".join([name.replace("humanoid3d_","").replace(".txt","").replace("_","") 
                                    for name in clip_paths])+str("_multiclip.txt")
         self.create_new_datafile("none", frames.copy().tolist(), json_save_path)
 
