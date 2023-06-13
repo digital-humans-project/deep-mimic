@@ -35,7 +35,7 @@ class DeepMimicMotionCombine(MapKeyframeMotionDataset):
                  t0: float = 0.0,) -> None:
         super().__init__()
         self.frames_exist = False
-        
+
         '''
         Input:
             clip_paths: list of the motion names
@@ -43,6 +43,11 @@ class DeepMimicMotionCombine(MapKeyframeMotionDataset):
             clips_num_repeat: list of number of times each motion in clips_path should repeat
         Returns:
             Extracts data from the motion_clip files and loads and initializes all the necessary data
+
+        Pseudo algorithm:
+            STEP 1: Concatenate copies of clipID equal to the number repetitionsID without any filtering.
+            STEP 2: At the final repetition of clipID, check all frames of clipID and all frames of clip(ID+1) to find the closest pair of frames.
+            STEP 3: Move on to the next clip and repeat the process until the final clip is reached.
         '''
 
         # assert all(isinstance(elem, int) and elem > 1 
@@ -57,6 +62,7 @@ class DeepMimicMotionCombine(MapKeyframeMotionDataset):
                 data = json.load(f)
             curr_frames = np.array(data["Frames"])
             
+            # STEP 1
             for rep in range(clips_num_repeat[i]-1):
                 if not self.frames_exist:
                     #initializing frames here
@@ -70,6 +76,7 @@ class DeepMimicMotionCombine(MapKeyframeMotionDataset):
                 trans_frames = self.track_root_and_time(curr_frames, frames[-1][1], frames[-1][3])
                 frames = np.concatenate([frames, trans_frames]) 
             
+            # STEP 2
             #extracting the frame number at which current motion-1 transitions into next motion-2
             frame_transition_idx_motion1 , frame_transition_idx_motion2 = frame_transition_idx[i]
             
@@ -90,7 +97,8 @@ class DeepMimicMotionCombine(MapKeyframeMotionDataset):
                                                     frame_transition_idx_motion2, "second")
             frames = np.concatenate([frames, trans_frames[frame_transition_idx_motion2:]])
             clips_num_repeat[i+1] -= 1
-        
+        # STEP 3
+
         #appending the remaining repeats of the last motion
         for rep in range(clips_num_repeat[-1]):
             trans_frames = self.track_root_and_time(curr_frames, frames[-1][1], frames[-1][3])
