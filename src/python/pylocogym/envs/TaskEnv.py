@@ -25,8 +25,7 @@ class TaskEnv(VanillaEnv):
                  max_episode_steps, 
                  env_params, reward_params, 
                  enable_rand_init=True,
-                 add_task_obs=True,
-                 pretrained_model=None):
+                 add_task_obs=True):
         
         self.add_task_obs = add_task_obs
         self.heading_angle = 0
