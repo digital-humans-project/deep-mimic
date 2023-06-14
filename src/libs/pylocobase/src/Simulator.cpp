@@ -179,7 +179,7 @@ crl::dVector Simulator::getRootOrientation() const{
     return crl::dVector(orientation.coeffs());
 }
 
-crl::dVector Simulator::getIkSolverQ(const crl::dVector &q_raw,
+crl::dVector Simulator::getIkSolverQ(const crl::dVector &q_inital,
                                     const crl::dVector &lf_pos,
                                     const crl::dVector &rf_pos,
                                     const crl::dVector &lh_pos,
@@ -188,31 +188,105 @@ crl::dVector Simulator::getIkSolverQ(const crl::dVector &q_raw,
     
     const crl::dVector eePosTarget[4]{lf_pos,rf_pos,lh_pos,rh_pos};
     crl::Quaternion R_desired[4];
-    crl::dVector q = q_raw, q_backup;
-    uint k;
-    double max_err = 0;
+    crl::dVector q = q_inital, q_backup;
+    uint k, k_max = 50;
+    const double tolerance = 0.015, alpha = 0.2;
 
     gcrr.getQ(q_backup); // store the initial q
     gcrr.setQ(q);
     gcrr.syncRobotStateWithGeneralizedCoordinates();
-    std::vector<int> ind{1,2,4,5,7,8,10,11,13,14,16,17,27,28,30,31,33,34,36,37,38,40,42,39,41,43};
-    Eigen::DiagonalMatrix<double,6> W(0.1,1,0.1,0.3,0.3,0.3);
+    // Only apply ik in these end-effector related joints
+    std::vector<int> joints_ind{1,2,4,5,7,8,10,11,13,14,16,17,27,28,30,31,33,34,36,37,38,40,42,39,41,43};
+    
+    // set current orientation as desired orientation
     for (int i = 0; i < robot_->getLimbCount(); i++) 
         R_desired[i] = gcrr.getOrientationFor(robot_->getLimb(i)->eeRB);
     
-    // Weighted equal priority version
-    for (k = 0; k < 50; k++) 
+    // Method 1: Weighted equal priority version
+
+    // Weight matirx: weight importance for pos_x,y,z and roatation_x,y,z
+    Eigen::DiagonalMatrix<double,6> W(0.1,1,0.1,0.5,0.5,0.5);
+    for (k = 0; k < k_max; k++) 
     {
         crl::dVector deltaq(q.size() - 6);
         deltaq.setZero();
 
-        crl::Matrix J,J2,J_pusedo_inv;
+        crl::Matrix J_pos,J_ori,J_pusedo_inv;
         crl::P3D target, eePos, p_FK;
         std::shared_ptr<crl::loco::RB> rb;
         crl::V3D err_pos, err_angular;
         crl::dVector err(6,1);
         crl::Quaternion R_now;
-        max_err = 0;
+        double max_err = 0;
+
+        for (int i = 0; i < robot_->getLimbCount(); i++) {
+            
+            eePos = robot_->getLimb(i)->ee->endEffectorOffset;
+            rb = (robot_->getLimb(i)->eeRB);
+            target = crl::getP3D(eePosTarget[i]);
+
+            // Position Jacobian 
+            gcrr.compute_dpdq(eePos, rb, J_pos);
+            J_pos = J_pos.block(0,6,3,q.size() - 6).eval();
+            J_pos = J_pos(Eigen::all,joints_ind);
+
+            // Angular Jacobian
+            gcrr.compute_angular_jacobian(rb, J_ori);
+            J_ori = J_ori.block(0,6,3,q.size() - 6).eval();
+            J_ori = J_ori(Eigen::all,joints_ind);
+            crl::Matrix J_total(J_pos.rows() + J_ori.rows(), J_pos.cols());
+
+            // Stack two J into J_total
+            J_total << J_pos, J_ori;
+            J_pusedo_inv = (J_total.transpose()*W*J_total).ldlt().solve(J_total.transpose()*W);
+            
+            // Position error
+            p_FK = robot_->getLimb(i)->getEEWorldPos();
+            err_pos = (crl::V3D(p_FK,target));
+            
+            // Angular error, use axis-angle representation
+            R_now = gcrr.getOrientationFor(rb);
+            crl::Quaternion rotate = R_desired[i] * R_now.inverse();
+            crl::AngleAxisd aa(rotate);
+            err_angular = aa.axis().normalized();
+            double angle = aa.angle();
+            err_angular *= angle;
+            
+            err << err_pos, err_angular;
+            deltaq(joints_ind) += J_pusedo_inv*err;
+            
+            if (max_err < err_pos.norm())
+                max_err = err_pos.norm();
+            
+        } 
+        if(max_err < tolerance) 
+            break;
+        q.tail(q.size() - 6) += alpha*deltaq;
+        gcrr.setQ(q);
+        gcrr.syncRobotStateWithGeneralizedCoordinates();
+    }
+    
+    // std::cout << "total iteration num: " << k <<std::endl;
+    // reset current physic to the initial state
+    gcrr.setQ(q_backup);
+    gcrr.syncRobotStateWithGeneralizedCoordinates();
+    return q;
+
+    /*
+    // prioritization version
+    for (k = 0; k < k_max; k++) 
+    {
+        crl::dVector deltaq(q.size() - 6);
+        deltaq.setZero();
+
+        crl::Matrix J_pos,J_ori,J_pusedo_inv,Jy, Jx, Jz, Jxz_pusedo_inv;
+        crl::P3D target, eePos, p_FK;
+        std::shared_ptr<crl::loco::RB> rb;
+        crl::V3D err_angular;
+        crl::dVector err(4,1), err2(2,1);
+        crl::Quaternion R_now;
+        double err_x, err_y, err_z;
+        double max_err = 0;
 
         for (int i = 0; i < robot_->getLimbCount(); i++) {
 
@@ -221,23 +295,45 @@ crl::dVector Simulator::getIkSolverQ(const crl::dVector &q_raw,
             target = crl::getP3D(eePosTarget[i]);
 
             // Position Jacobian 
-            gcrr.compute_dpdq(eePos, rb, J);
-            J = J.block(0,6,3,q.size() - 6).eval();
-            J = J(Eigen::all,ind);
-
+            gcrr.compute_dpdq(eePos, rb, J_pos);
+            J_pos = J_pos.block(0,6,3,q.size() - 6).eval();
+            Jx = J_pos.row(0);
+            Jy = J_pos.row(1);
+            Jz = J_pos.row(2);
+            
+            Jx = Jx(Eigen::all,joints_ind);
+            Jy = Jy(Eigen::all,joints_ind);
+            Jz = Jz(Eigen::all,joints_ind);
+            
             // Angular Jacobian
-            gcrr.compute_angular_jacobian(rb, J2);
-            J2 = J2.block(0,6,3,q.size() - 6).eval();
-            J2 = J2(Eigen::all,ind);
-            crl::Matrix J_total(J.rows() + J2.rows(), J.cols());
-            J_total << J, J2;
-            J_pusedo_inv = (J_total.transpose()*W*J_total).ldlt().solve(J_total.transpose()*W);
+            gcrr.compute_angular_jacobian(rb, J_ori);
+            J_ori = J_ori.block(0,6,3,q.size() - 6).eval();
+            J_ori = J_ori(Eigen::all,joints_ind);
+            crl::Matrix J_total(Jy.rows() + J_ori.rows(), Jy.cols());
+
+            // Task 1, high priority, y value and ori
+            J_total << Jy, J_ori;
+            J_pusedo_inv = (J_total.transpose()*J_total).ldlt().solve(J_total.transpose());
+            
+            // Task 2, low priority, x,z value
+            crl::Matrix Jxz(Jx.rows() + Jz.rows(), Jx.cols());
+            Jxz << Jx,Jz;
+
+            crl::Matrix I(J_total.cols(), J_total.cols()); 
+            I.setIdentity();
+            crl::Matrix N1;
+            N1 = I - J_pusedo_inv*J_total;
+            
+            crl::Matrix Temp = Jxz * N1;
+            Jxz_pusedo_inv = (Temp.transpose()*Temp).ldlt().solve(Temp.transpose());
             
             // Position error
             p_FK = robot_->getLimb(i)->getEEWorldPos();
-            err_pos = (crl::V3D(p_FK,target));
-            
-            // Angular error
+            err_y = (crl::V3D(p_FK,target))[1];
+            err_x = (crl::V3D(p_FK,target))[0];
+            err_z = (crl::V3D(p_FK,target))[2];
+
+            // Angular error, use axis-angle representation
             R_now = gcrr.getOrientationFor(rb);
             crl::Quaternion rotate = R_desired[i] * R_now.inverse();
             crl::AngleAxisd aa(rotate);
@@ -245,111 +341,22 @@ crl::dVector Simulator::getIkSolverQ(const crl::dVector &q_raw,
             double angle = aa.angle();
             err_angular *= angle;
 
-            err << err_pos, err_angular;
-            deltaq(ind) += J_pusedo_inv*err;
+            err << err_y, err_angular; // for task 1
+            err2 << err_x, err_z;      // for task 2
             
-            if (max_err < err_pos.norm())
-                max_err = err_pos.norm();
+            deltaq(joints_ind) += J_pusedo_inv*err + N1*Jxz_pusedo_inv*(err2 - Jxz*(J_pusedo_inv*err));
+            
+            if (max_err < err_y)
+                max_err = err_y;
             
         } 
-        if(max_err < 0.02) 
+        if(max_err < tolerance) 
             break;
-        // deltaq(ind) *= 0;
-        q.tail(q.size() - 6) += 0.2*deltaq;
+        q.tail(q.size() - 6) += alpha*deltaq;
         gcrr.setQ(q);
         gcrr.syncRobotStateWithGeneralizedCoordinates();
     }
-    
-    // std::cout << k <<" aver: "<<max_err<<std::endl;
-    gcrr.setQ(q_backup);
-    gcrr.syncRobotStateWithGeneralizedCoordinates();
-    return q;
-
-    // prioritization version
-    // for (k = 0; k < 50; k++) 
-    // {
-    //     crl::dVector deltaq(q.size() - 6);
-    //     deltaq.setZero();
-
-    //     crl::Matrix J,J2,J_pusedo_inv,Jy, Jx, Jz, Jxz_pusedo_inv;
-    //     crl::P3D target, eePos, p_FK;
-    //     std::shared_ptr<crl::loco::RB> rb;
-    //     crl::V3D err_angular;
-    //     crl::dVector err(4,1), err2(2,1);
-    //     crl::Quaternion R_now;
-    //     double err_x, err_y, err_z;
-    //     max_err = 0;
-
-    //     for (int i = 0; i < robot_->getLimbCount(); i++) {
-
-    //         eePos = robot_->getLimb(i)->ee->endEffectorOffset;
-    //         rb = (robot_->getLimb(i)->eeRB);
-    //         target = crl::getP3D(eePosTarget[i]);
-
-    //         // Position Jacobian 
-    //         gcrr.compute_dpdq(eePos, rb, J);
-    //         J = J.block(0,6,3,q.size() - 6).eval();
-    //         Jx = J.row(0);
-    //         Jy = J.row(1);
-    //         Jz = J.row(2);
-            
-    //         Jx = Jx(Eigen::all,ind);
-    //         Jy = Jy(Eigen::all,ind);
-    //         Jz = Jz(Eigen::all,ind);
-            
-    //         // Angular Jacobian
-    //         gcrr.compute_angular_jacobian(rb, J2);
-    //         J2 = J2.block(0,6,3,q.size() - 6).eval();
-    //         J2 = J2(Eigen::all,ind);
-    //         crl::Matrix J_total(Jy.rows() + J2.rows(), Jy.cols());
-
-    //         J_total << Jy, J2;
-
-    //         J_pusedo_inv = (J_total.transpose()*J_total).ldlt().solve(J_total.transpose());
-            
-    //         crl::Matrix Jxz(Jx.rows() + Jz.rows(), Jx.cols());
-    //         Jxz << Jx,Jz;
-
-            
-    //         crl::Matrix I(J_total.cols(), J_total.cols()); 
-    //         I.setIdentity();
-    //         crl::Matrix N1;
-    //         N1 = I - J_pusedo_inv*J_total;
-            
-
-    //         crl::Matrix Temp = Jxz * N1;
-    //         Jxz_pusedo_inv = (Temp.transpose()*Temp).ldlt().solve(Temp.transpose());
-            
-    //         // Position error
-    //         p_FK = robot_->getLimb(i)->getEEWorldPos();
-    //         err_y = (crl::V3D(p_FK,target))[1];
-    //         err_x = (crl::V3D(p_FK,target))[0];
-    //         err_z = (crl::V3D(p_FK,target))[2];
-
-    //         // Angular error
-    //         R_now = gcrr.getOrientationFor(rb);
-    //         crl::Quaternion rotate = R_desired[i] * R_now.inverse();
-    //         crl::AngleAxisd aa(rotate);
-    //         err_angular = aa.axis().normalized();
-    //         double angle = aa.angle();
-    //         err_angular *= angle;
-
-    //         err << err_y, err_angular;
-    //         err2 << err_x, err_z;
-            
-    //         deltaq(ind) += J_pusedo_inv*err + N1*Jxz_pusedo_inv*(err2 - Jxz*(J_pusedo_inv*err));
-            
-    //         if (max_err < err_y)
-    //             max_err = err_y;
-            
-    //     } 
-    //     if(max_err < 0.02) 
-    //         break;
-    //     // deltaq(ind) *= 0;
-    //     q.tail(q.size() - 6) += 0.3*deltaq;
-    //     gcrr.setQ(q);
-    //     gcrr.syncRobotStateWithGeneralizedCoordinates();
-    // }
+    */
 }
 
 

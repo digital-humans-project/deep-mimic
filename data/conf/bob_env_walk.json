@@ -28,7 +28,8 @@
     "motors_kd": 50.0,
     "max_torque": 200.0,
     "is_obs_fullstate": true,
-    "use_random_command": false
+    "use_random_command": false,
+    "use_ik_solution": true
   },
   "reward_params": {
 

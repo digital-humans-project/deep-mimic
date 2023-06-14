@@ -116,9 +116,12 @@ class VanillaEnv(PylocoEnv):
             reward_params,
         )
 
-        # Forwards Kinematics class
-        # self.fk = ForwardKinematics(env_params["urdf_path"])
-        self.minimum_height = 0.009
+        # Inverse kinematics solution
+        self.use_ik_solution = env_params["use_ik_solution"]
+        if self.use_ik_solution:
+            self.minimum_height = 0.01 
+            self.q_last = None
+            self.alpha = 0.3
 
     def reset(self, seed=None, return_info=False, options=None, phase=0):
         # super().reset(seed=seed)  # We need this line to seed self.np_random
@@ -144,6 +147,13 @@ class VanillaEnv(PylocoEnv):
         assert self.max_episode_steps > 0, "max_episode_steps should be positive"
 
         (q_reset, qdot_reset) = self.get_initial_state(self.initial_time)
+        
+        if self.use_ik_solution:
+            end_effectors_raw = self._sim.get_fk_ee_pos(q_reset)
+            end_effectors_pos = np.array(
+                [end_effectors_raw[0], end_effectors_raw[2], end_effectors_raw[1], end_effectors_raw[3]])
+            (q_reset, _)  = self.get_ik_solutions(q_reset, end_effectors_pos)
+
         self._sim.reset(q_reset, qdot_reset, self.initial_time / self.clips_play_speed)  # q, qdot include root's state(pos,ori,vel,angular vel)
         # self._sim.reset()
 
@@ -166,7 +176,7 @@ class VanillaEnv(PylocoEnv):
 
         # run simulation
         action_applied = self.scale_action(action)
-        self._sim.step(action_applied)
+        self._sim.step(action)
         observation = self.get_obs()
 
         # update variables
@@ -185,21 +195,18 @@ class VanillaEnv(PylocoEnv):
         sample, kf = res
         sample_retarget = self.adapter.adapt(sample, kf)  # type: ignore # data after retargeting
 
-        # data_joints = sample_retarget.q
-        # q_desired = self._sim.get_ik_solver_q(data_joints,
-        #                                       end_effectors_pos[0,:],
-        #                                       end_effectors_pos[1,:],
-        #                                       end_effectors_pos[2,:],
-        #                                       end_effectors_pos[3,:])
-
         end_effectors_raw = self._sim.get_fk_ee_pos(sample_retarget.q)
         end_effectors_pos = np.array(
             [end_effectors_raw[0], end_effectors_raw[2], end_effectors_raw[1], end_effectors_raw[3]]
         )
-        for each_pos in end_effectors_pos:
-            if each_pos[1] < self.minimum_height:
-                each_pos[1] = self.minimum_height
-        # sample_retarget.q = q_desired
+        
+        if self.use_ik_solution: # fix the problematic ee_pos and joints' values
+            (sample_retarget.q, end_effectors_pos)  = self.get_ik_solutions(sample_retarget.q, end_effectors_pos)
+        
+        else: # simply just fix the problematic ee_pos, not changed the joints' values
+            for each_pos in end_effectors_pos:
+                if each_pos[1] < self.minimum_height:
+                    each_pos[1] = self.minimum_height
 
         # compute reward
         reward, reward_info, err_info = self.reward_utils.compute_reward(
@@ -253,3 +260,32 @@ class VanillaEnv(PylocoEnv):
         diff = action_new - action_old
         action_filtered = action_old + np.sign(diff) * np.minimum(np.abs(diff), threshold)
         return action_filtered
+    
+    def get_ik_solutions(self, q, ee_pos):
+        use_ik = False
+
+        # check if ik is needed
+        for each_pos in ee_pos:
+            if each_pos[1] < self.minimum_height:
+                each_pos[1] = self.minimum_height
+                use_ik = True
+        
+        # unsafe ee_pos, use_ik and store the solution in q_last
+        if use_ik:
+            if self.q_last is None:
+                self.q_last = q
+            # q_ik_init set to weighted average of current problematic q and q_last
+            q_ik_init = np.concatenate(
+                [q[0:6], (1 - self.alpha) * self.q_last[6:] + self.alpha * q[6:]])
+            q = self._sim.get_ik_solver_q(q_ik_init,
+                                            ee_pos[0],
+                                            ee_pos[2],
+                                            ee_pos[1],
+                                            ee_pos[3])
+            self.q_last = q
+
+        # safe ee_pos, clear the q_last
+        else:
+            self.q_last = None
+
+        return q, ee_pos
