@@ -200,3 +200,4 @@ __pycache__
 notebook/
 .ipynb_checkpoints
 model_data/
+export/
