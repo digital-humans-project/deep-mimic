@@ -18,7 +18,8 @@ def test(params, motion_clips_path=None, urdf_path = None):
 
     max_episode_steps = hyp_params.get('max_episode_steps', 5000)
     seed = hyp_params.get("seed", 313)
-    env_kwargs = {"max_episode_steps": max_episode_steps, "env_params": env_params, "reward_params": reward_params,"enable_rand_init": False}
+    env_kwargs = {"max_episode_steps": max_episode_steps, "env_params": env_params, 
+                  "reward_params": reward_params,"enable_rand_init": False}
 
     if motion_clips_path is not None:
         reward_params["motion_clips_file_path"] = motion_clips_path  # add reward path to reward params
@@ -75,7 +76,8 @@ def play_motion(params, motion_clips_path=None, urdf_path = None):
 
     max_episode_steps = hyp_params.get('max_episode_steps', 5000)
     seed = hyp_params.get("seed", 313)
-    env_kwargs = {"max_episode_steps": max_episode_steps, "env_params": env_params, "reward_params": reward_params, "enable_rand_init": False}
+    env_kwargs = {"max_episode_steps": max_episode_steps, "env_params": env_params, 
+                  "reward_params": reward_params, "enable_rand_init": False}
 
     if motion_clips_path is not None:
         reward_params["motion_clips_file_path"] = motion_clips_path  # add reward path to reward params
