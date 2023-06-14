@@ -189,7 +189,7 @@ void Robot::draw(const gui::Shader &rbShader, float alpha) {
     if (showCollisionSpheres)
         for (const auto &rb : rbList)
         {
-            if(rb->name == "lFoot" || rb->name == "lToes")
+            if(rb->name == "lFoot" || rb->name == "lToes" || rb->name == "rFoot" || rb->name == "rToes")
                 RBRenderer::drawCollisionShapes(rb, rbShader);
         }
 

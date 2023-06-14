@@ -19,7 +19,10 @@ class TensorboardCallback(BaseCallback):
             # record log
             if self.locals['dones'][idx]:
                 rew_infos = infos[idx]['mean_episode_reward_terms']
+                err_infos = infos[idx]['mean_episode_err_terms']
                 for key in rew_infos.keys():
                     # check if more than 1 env is done, is the first env reward data overwritten?
                     self.logger.record('reward_terms/' + key, rew_infos[key])
+                for k, v in err_infos.items():
+                    self.logger.record('err_terms/' + k, v)
         return True
