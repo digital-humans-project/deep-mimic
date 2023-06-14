@@ -71,20 +71,20 @@ class Reward:
         # Root height reward
         height = observation.y
         desired_height = sample_retarget.q_fields.root_pos[1]
-        diff_squere = (height - desired_height)**2
+        diff_square = (height - desired_height)**2
         sigma_height = params.get("sigma_height", 0)
         weight_height = params.get("weight_height", 0)
-        height_reward = weight_height * np.exp(-diff_squere/(2.0*sigma_height**2))
+        height_reward = weight_height * np.exp(-diff_square/(2.0*sigma_height**2))
         height_err = height - desired_height
 
         # Root orientation reward
         R = Rotation.from_euler('YXZ',sample_retarget.q_fields.root_rot)
         desired_ori = R.as_quat()
-        diff_squere = np.sum((observation.ori_q - desired_ori)**2)
+        diff_square = np.sum((observation.ori_q - desired_ori)**2)
         weight_root_ori = params.get("weight_root_ori", 0)
         sigma_root_ori = params.get("sigma_root_ori", 0)
-        root_ori_reward = weight_root_ori * np.exp(-diff_squere/(sigma_root_ori**2))
-        root_ori_err = diff_squere
+        root_ori_reward = weight_root_ori * np.exp(-diff_square/(sigma_root_ori**2))
+        root_ori_err = diff_square
 
         N = num_joints
         N_mimic = len(self.mimic_joints_index)
