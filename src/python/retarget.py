@@ -109,7 +109,7 @@ def play_motion(params, motion_clips_path=None, urdf_path = None):
         # t2 = eval_env.envs[1].phase*eval_env.envs[1].dataset.duration
         phase = 0
         while phase <= 2:
-            phase = 0.0
+            phase += (1/frame_rate)/eval_env.envs[0].motion.duration
             if phase <= 2: 
                 eval_env.envs[0].reset(phase = phase)
             else:
