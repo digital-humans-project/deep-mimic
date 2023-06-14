@@ -29,7 +29,8 @@
     "max_torque": 200.0,
     "is_obs_fullstate": true,
     "use_random_command": false,
-    "use_ik_solution": false
+    "use_ik_solution": false,
+    "early_termination_criterion": "Lose Track"
   },
   "reward_params": {
 

@@ -230,7 +230,7 @@ class TaskEnv(VanillaEnv):
         }
 
         # check if episode is done
-        terminated, truncated, term_info = self.is_done(observation)
+        terminated, truncated, term_info = self.is_done(observation, sample_retarget)
         done = terminated | truncated
 
         # punishment for early termination

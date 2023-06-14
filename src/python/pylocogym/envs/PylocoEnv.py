@@ -168,7 +168,7 @@ class PylocoEnv(gym.Env):
 
         self.current_step = 0
 
-    def is_done(self, observation):
+    def is_done(self, observation, sample_retarget):
         """ This function tells whether the episode is finished or not.
         Episode will finish if one of these conditions happen:
         1. max episode length is reached.
@@ -179,9 +179,23 @@ class PylocoEnv(gym.Env):
         base_height = observation[1] if self.is_obs_fullstate else observation[0]
 
         # early termination
-        if base_height < (self.base_height_default / 3) \
-                or (not self.observation_space.contains(observation)) \
-                or self._sim.is_robot_collapsed():
+        if self.et_criterion == "Fall":
+            criterion = base_height < (self.base_height_default / 3)
+        elif self.et_criterion == "Lose Track":
+            desired_base_pos = sample_retarget.q_fields.root_pos
+            now_base_pos = observation[0:3]
+            diff = np.linalg.norm(desired_base_pos - now_base_pos)
+            criterion = diff > self.com_max_diff
+        elif self.et_criterion == "Both": 
+            criterion = base_height < (self.base_height_default / 3)
+            desired_base_pos = sample_retarget.q_fields.root_pos
+            now_base_pos = observation[0:3]
+            diff = np.linalg.norm(desired_base_pos - now_base_pos)
+            criterion = criterion or (diff > self.com_max_diff)
+
+        if  criterion \
+            or (not self.observation_space.contains(observation)) \
+            or self._sim.is_robot_collapsed():
             if not self.observation_space.contains(observation):
                 low_space = (observation >= self.observation_space.low)
                 high_space = (observation <= self.observation_space.high)

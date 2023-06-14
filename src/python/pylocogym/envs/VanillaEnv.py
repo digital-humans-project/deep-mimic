@@ -117,11 +117,22 @@ class VanillaEnv(PylocoEnv):
         )
 
         # Inverse kinematics solution
-        self.use_ik_solution = env_params["use_ik_solution"]
         self.minimum_height = 0.01
+        self.use_ik_solution = False 
+        if "use_ik_solution" in env_params.keys():
+            self.use_ik_solution = env_params["use_ik_solution"]
+
         if self.use_ik_solution:
             self.q_last = None
             self.alpha = 0.3
+
+        # Early termination criterion
+        self.com_max_diff = 0.3
+        self.et_criterion = "Fall"
+        if "early_termination_criterion" in env_params.keys():
+            self.et_criterion = env_params["early_termination_criterion"]
+        if "com_max_diff" in env_params.keys():
+            self.com_max_diff = env_params["com_max_diff"]  
 
     def reset(self, seed=None, return_info=False, options=None, phase=0):
         # super().reset(seed=seed)  # We need this line to seed self.np_random
@@ -225,7 +236,7 @@ class VanillaEnv(PylocoEnv):
         }
 
         # check if episode is done
-        terminated, truncated, term_info = self.is_done(observation)
+        terminated, truncated, term_info = self.is_done(observation, sample_retarget)
         done = terminated | truncated
 
         # punishment for early termination
