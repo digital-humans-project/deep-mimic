@@ -44,9 +44,9 @@ class TaskReward(Reward):
         # =======================
 
         # Root position reward
-        desired_base_pos_xz = sample_retarget.q_fields.root_pos
-        now_base_xz = observation.pos
-        diff = np.linalg.norm(desired_base_pos_xz - now_base_xz)
+        desired_base_pos = sample_retarget.q_fields.root_pos
+        now_base_pos = observation.pos
+        diff = np.linalg.norm(desired_base_pos - now_base_pos)
         sigma_com = params.get("sigma_com", 0)
         weight_com = params.get("weight_com", 0)
         com_reward = weight_com * np.exp(-diff**2/(2.0*sigma_com**2)) # Inspired from assignment 2 equivalent reward.
