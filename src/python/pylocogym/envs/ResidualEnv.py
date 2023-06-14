@@ -170,6 +170,7 @@ class ResidualEnv(PylocoEnv):
         self.current_step = 0
         self.box_throwing_counter = 0
         self.pretrained_lerp.reset()  # reset dataloader
+        self.lerp.reset()
 
         # self.phase = self.sample_initial_state()
         if self.enable_rand_init:
