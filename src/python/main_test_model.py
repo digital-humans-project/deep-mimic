@@ -7,16 +7,19 @@ matplotlib.use("Agg")
 from pylocogym.cmake_variables import *
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import DummyVecEnv
+from stable_baselines3.common.vec_env import VecNormalize
 from stable_baselines3 import PPO
+from pylocogym.algorithms import CustomPPO, CustomActorCriticPolicy
 
 
 if __name__ == "__main__":
 
-    motion_clip_file = "humanoid3d_jump.txt"
-    config = "bob_env.json"
+    motion_clip_file = "humanoid3d_walk.txt"
+    config = "bob_env_walk_task.json"
     log_path = PYLOCO_LOG_PATH
     data_path = PYLOCO_DATA_PATH
-    model_file = "model_data/jump/model_24000000_steps.zip"
+    model_file = "model_data/walk_task/model_34000000_steps.zip"
+    venv_file = "model_data/walk_task/vecnormalize_34000000_steps.pkl"
 
     # config file
     if config is None:
@@ -48,7 +51,6 @@ if __name__ == "__main__":
     # create a simple environment for testing model
     # =============
 
-    # eval_env = gym.make(env_id, **env_kwargs)
     eval_env = make_vec_env(
         env_id,
         n_envs=1,
@@ -56,12 +58,15 @@ if __name__ == "__main__":
         env_kwargs=env_kwargs,
         vec_env_cls=DummyVecEnv
     )
+    if hyp_params.get("normalize_observation") or hyp_params.get("normalize_reward"):
+        eval_env = VecNormalize.load(venv_file,eval_env)
+    
     
 
     # =============
     # Load pre-trained model
     # =============
-    model = PPO.load(model_file, eval_env)
+    model = CustomPPO.load(model_file, eval_env)
 
     # =============
     # start playing
@@ -72,8 +77,8 @@ if __name__ == "__main__":
         obs = eval_env.reset()
         done = False
         while not done:
-            eval_env.envs[0].render("human")
+            eval_env.render("human")
             action, _ = model.predict(obs)
-            obs, reward, done, info = eval_env.envs[0].step(action.squeeze())
-            print("now phase", obs[-1])
+            obs, reward, done, info = eval_env.step(action)
+            print("now angle", obs.squeeze()[-1])
     eval_env.close()

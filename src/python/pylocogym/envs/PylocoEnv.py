@@ -244,6 +244,22 @@ class PylocoEnv(gym.Env):
     def get_obs(self):
         q = self._sim.get_q()
         qdot = self._sim.get_qdot()
+
+        # q_restore = q.copy()
+        # qdot_restore = qdot.copy()
+        
+        # R_heading = Rotation.from_rotvec(-self.total_angle * np.array([0, 1, 0]))
+        # R_now = Rotation.from_euler("YXZ",q[3:6])
+        # R = R_heading*R_now
+
+        # q[0:3] =  R_heading.apply(q[0:3])
+        # q[3:6] = R.as_euler("YXZ")
+        # qdot[0:3] =  R_heading.apply(qdot[0:3])
+        
+        # # if self.tune:
+        # self._sim.set_q_and_qdot(q,qdot)
+
+
         if self.is_obs_fullstate:
             ori = self._sim.get_root_ori()
             # we only store the x y z from [x,y,z,w], 
@@ -268,6 +284,8 @@ class PylocoEnv(gym.Env):
         now_phase, _ = np.modf(data_time/self.motion.duration)
         obs = np.concatenate((obs, now_phase), axis=None)
 
+
+        # self._sim.set_q_and_qdot(q_restore,qdot_restore)
         return obs
 
     def get_reduced_obs(self, q, qdot):

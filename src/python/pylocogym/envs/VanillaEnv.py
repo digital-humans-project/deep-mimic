@@ -4,7 +4,7 @@ from importlib.machinery import SourceFileLoader
 from typing import List
 
 import numpy as np
-
+from scipy.spatial.transform import Rotation
 from ..cmake_variables import PYLOCO_LIB_PATH
 from .PylocoEnv import PylocoEnv
 
@@ -138,6 +138,10 @@ class VanillaEnv(PylocoEnv):
         data_duration = total_duration - self.initial_time
         sim_duration = data_duration / self.clips_play_speed
 
+        # self.turning_angle = -0.0015*np.pi
+        # self.count = 0
+        # self.total_angle = 0
+        # self.tune = True
 
         # Maximum episdode step
         self.max_episode_steps = int(sim_duration / self.cnt_timestep_size)
@@ -168,6 +172,33 @@ class VanillaEnv(PylocoEnv):
         action_applied = self.scale_action(action)
         self._sim.step(action_applied)
         observation = self.get_obs()
+    
+        temp_q = self._sim.get_q()
+        temp_qdot = self._sim.get_qdot()
+
+        if self.count >= 120:
+            self.tune = False
+            print(self.count)
+            self.count = 119
+        
+        self.count += 1
+
+        if self.tune:
+            # qdot --- > yxz
+            self.total_angle += self.turning_angle
+
+            R_heading = Rotation.from_rotvec(self.turning_angle * np.array([0, 1, 0]))
+            R_now = Rotation.from_euler("YXZ",temp_q[3:6])
+            R = R_heading*R_now
+
+            # temp_q[0:3] =  R_heading.apply(temp_q[0:3])
+            temp_q[3:6] = R.as_euler("YXZ")
+            temp_qdot[0:3] = R_heading.apply(temp_qdot[0:3])
+
+            # temp_qdot[3] = temp_qdot[3] + self.heading_v
+            # temp_qdot[4] = temp_qdot[4] - 0.2*self.heading_v
+            
+            self._sim.set_q_and_qdot(temp_q,temp_qdot)
 
         # update variables
         self.current_step += 1

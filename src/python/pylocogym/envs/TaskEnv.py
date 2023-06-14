@@ -30,6 +30,7 @@ class TaskEnv(VanillaEnv):
         
         self.add_task_obs = add_task_obs
         self.heading_angle = 0
+        self.angle_pace = 0.01
         self.heading_vector = np.array([0,1])
         
         super().__init__(max_episode_steps, env_params, reward_params, enable_rand_init)
@@ -76,10 +77,10 @@ class TaskEnv(VanillaEnv):
         obs = np.concatenate((obs,self.heading_vector,self.heading_angle), axis=None)
         return obs
 
-    def rotate_coordinate(self, q, qdot):
+    def rotate_coordinate(self, q, qdot, angle, enable_pos_rotate = True):
         
         # Extract rotation matrix of the angle
-        R_heading = Rotation.from_rotvec(self.heading_angle * np.array([0, 1, 0]))
+        R_heading = Rotation.from_rotvec(angle * np.array([0, 1, 0]))
         
         # The "forward" direction is the z-axis.
         self.heading_vector = R_heading.apply(np.array([0,0,1]))
@@ -87,7 +88,8 @@ class TaskEnv(VanillaEnv):
         R_now = Rotation.from_euler("YXZ",q[3:6])
         R = R_heading*R_now # Compose the rotation R_now -> R_heading.
         
-        q[0:3] =  R_heading.apply(q[0:3]) # Apply heading rotation on the full motion clip. Intuition is easier if reminded that q is w.r.t world coordinates.
+        if enable_pos_rotate:
+            q[0:3] =  R_heading.apply(q[0:3]) # Apply heading rotation on the full motion clip. Intuition is easier if reminded that q is w.r.t world coordinates.
         q[3:6] = R.as_euler("YXZ") # Apply the full rotation on the *yaw, pitch & roll* of the agent. Essentially, this orients the agent.
         qdot[0:3] = R_heading.apply(qdot[0:3]) # Make the linear velocity vector "turn" to align with the "self.heading_angle".
         #not calculating the qdot angular velocity values, need to change order of axes before doing so
@@ -109,7 +111,7 @@ class TaskEnv(VanillaEnv):
         qdot_reset = sample_retarget.qdot
         qdot_reset = qdot_reset * self.clips_play_speed
 
-        return self.rotate_coordinate(q_reset, qdot_reset)
+        return self.rotate_coordinate(q_reset, qdot_reset, self.heading_angle)
     
     def reset(self, seed=None, return_info=False, options=None, phase=0):
         # super().reset(seed=seed)  # We need this line to seed self.np_random
@@ -120,7 +122,8 @@ class TaskEnv(VanillaEnv):
         # At the beginning of each episode, an initial heading angle in the semicircle is sampled.
         # The model will attempt to follow this direction for the whole duration of the episode,
         # The (uniform) sampling is done, so as to explore the solution space and make the model generalizable and robust.
-        self.heading_angle = np.random.uniform(-np.pi/2, np.pi/2)
+        # self.heading_angle = np.random.uniform(-np.pi/2, np.pi/2)
+        self.heading_angle = 0
         # self.phase = self.sample_initial_state()
         # Have the episode run starting from a random frame of the motion clip.
         # This is so that the agent adapts their parameterization (e.g. NN weights) in such a way that they can handle the motion holistically.
@@ -168,6 +171,12 @@ class TaskEnv(VanillaEnv):
         # run simulation
         action_applied = self.scale_action(action)
         self._sim.step(action_applied)
+        if self.heading_angle >= np.pi * 0.25:
+            self.angle_pace = 0
+        else:
+            self.angle_pace = 0.01
+        self.heading_angle += self.angle_pace
+        self.steering_control()
         observation = self.get_obs()
 
         # update variables
@@ -193,7 +202,7 @@ class TaskEnv(VanillaEnv):
         #                                       end_effectors_pos[2,:],
         #                                       end_effectors_pos[3,:])
 
-        (sample_retarget.q, sample_retarget.qdot) = self.rotate_coordinate(sample_retarget.q, sample_retarget.qdot)
+        (sample_retarget.q, sample_retarget.qdot) = self.rotate_coordinate(sample_retarget.q, sample_retarget.qdot, self.heading_angle)
         end_effectors_raw = self._sim.get_fk_ee_pos(sample_retarget.q)
         end_effectors_pos = np.array(
             [end_effectors_raw[0], end_effectors_raw[2], end_effectors_raw[1], end_effectors_raw[3]]
@@ -248,4 +257,9 @@ class TaskEnv(VanillaEnv):
             info["mean_episode_err_terms"] = mean_episode_err_terms
 
         return observation, reward, done, info
-
+    
+    def steering_control(self):
+        temp_q = self._sim.get_q()
+        temp_qdot = self._sim.get_qdot()
+        (q_steer, qdot_steer) = self.rotate_coordinate(temp_q,temp_qdot,self.angle_pace,enable_pos_rotate=False)
+        self._sim.set_q_and_qdot(q_steer,qdot_steer)
