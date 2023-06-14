@@ -3,6 +3,8 @@ import urdf_parser_py.urdf as urdf
 from scipy.spatial.transform import Rotation
 import json
 
+import os
+
 def extract_euler(quat, mode='XYZ'):
         r = Rotation.from_quat(quat)
         euler = r.as_euler(mode)
@@ -256,8 +258,10 @@ if __name__ == "__main__":
 
     # Visualization of a whole data clip.
     # Change path to your path for the "humanoid.urdf". The file can be found int his project as well.
-    urdf_data_path = r"C:\Users\kosta\Desktop\second_semester\digital_humans\final_project\deep-mimic\data\robots\deep-mimic\humanoid.urdf"
-    motion_data_path = r'C:\Users\kosta\Desktop\second_semester\digital_humans\final_project\deep-mimic\data\deepmimic\motions\humanoid3d_jump.txt'
+
+    
+    urdf_data_path = os.getcwd() + r'\data\robots\deep-mimic\humanoid.urdf'
+    motion_data_path = os.getcwd() + r'\data\deepmimic\motions\humanoid3d_zombie_walk.txt'
     with open(motion_data_path, "r") as json_file:
         data = json.load(json_file)
     motion = np.array(data["Frames"])
