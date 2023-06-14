@@ -1,5 +1,5 @@
 {
-  "env_id": "PylocoResidual-v0",
+  "env_id": "ResidualEnv-v0",
   "motion_file": "humanoid3d_walk.txt",
   "train_hyp_params": {
     "learning_rate": {

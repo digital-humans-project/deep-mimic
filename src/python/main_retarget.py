@@ -4,7 +4,7 @@ import json
 import matplotlib
 matplotlib.use("Agg")
 
-from src.python import retarget
+import retarget
 from pylocogym.cmake_variables import *
 
 

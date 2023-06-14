@@ -29,7 +29,7 @@ from pylocogym.data.loop_dataset import LoopKeyframeMotionDataset
 from pylocogym.envs.rewards.bob.humanoid_reward import Reward
 
 
-class ResidualEnv(VanillaEnv):
+class ResidualEnv_v0(VanillaEnv):
     def __init__(self, 
                  max_episode_steps, 
                  env_params, reward_params, 

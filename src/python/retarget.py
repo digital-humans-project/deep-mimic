@@ -3,6 +3,7 @@ from stable_baselines3.common.vec_env import DummyVecEnv
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 import time
+import os
 
 def test(params, motion_clips_path=None, urdf_path = None):
     """Render environment using given action"""
@@ -83,6 +84,11 @@ def play_motion(params, motion_clips_path=None, urdf_path = None):
         reward_params["motion_clips_file_path"] = motion_clips_path  # add reward path to reward params
     if urdf_path is not None:
         env_params["urdf_path"] = urdf_path
+
+    if params['pretrained_file'] is not None:
+        pretrained_clip_file = params['pretrained_file']
+        pretrained_clip_file = os.path.join("data", "deepmimic", "pretrained", pretrained_clip_file)
+        reward_params["pretrained_clips_file_path"] = pretrained_clip_file
         
     # =============
     # create a simple environment for evaluation

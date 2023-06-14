@@ -61,7 +61,6 @@ class VanillaEnv(PylocoEnv):
 
         # Set maximum episode length according to motion clips
         self.clips_play_speed = reward_params["clips_play_speed"]  # play speed for motion clips
-        self.clips_play_speed = reward_params["clips_play_speed"]  # play speed for motion clips
         self.clips_repeat_num = reward_params["clips_repeat_num"]  # the number of times the clip needs to be repeated
         self.initial_pose = np.concatenate(
             [
@@ -70,7 +69,7 @@ class VanillaEnv(PylocoEnv):
             ]
         )
 
-        # Dataloader
+        # Dataloader for Motion Data
         self.motion = DeepMimicMotion(reward_params["motion_clips_file_path"])
         self.loop = LoopKeyframeMotionDataset(
             self.motion, num_loop=self.clips_repeat_num, track_fields=[BobMotionDataFieldNames.ROOT_POS]
