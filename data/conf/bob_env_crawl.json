@@ -18,7 +18,8 @@
     "max_evaluation_steps": 1000,
     "seed": 313,
     "normalize_observation": false,
-    "normalize_reward": false
+    "normalize_reward": false,
+    "early_termination_criterion": "Lose Track"
   },
   "environment_params": {
     "robot_model": "Bob",
