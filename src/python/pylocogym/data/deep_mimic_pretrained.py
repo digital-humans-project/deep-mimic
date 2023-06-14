@@ -66,7 +66,7 @@ class DeepMimicKeyframeMotionDataSample(KeyframeMotionDataSample):
     BaseSampleType: ClassVar = DeepMimicMotionDataSample
 
 
-class DeepMimicMotion(MapKeyframeMotionDataset):
+class DeepMimicPretrained(MapKeyframeMotionDataset):
     """
     DeepMimic motion data.
 
@@ -78,6 +78,7 @@ class DeepMimicMotion(MapKeyframeMotionDataset):
     def __init__(
         self,
         path: Union[str, Path],
+        len: int,
         t0: float = 0.0,
         loop: Optional[Literal["wrap", "none", "mirror"]] = None,
     ) -> None:
@@ -90,13 +91,15 @@ class DeepMimicMotion(MapKeyframeMotionDataset):
         assert self.loop in ["wrap", "none", "mirror"]
 
         frames = np.array(data["Frames"])
-        #print("data frames", frames.shape)
+        frames = frames[:len]
+        frames[-1,0] = 0.0
+        #print("pretrained frames", frames.shape)
         if self.loop == "mirror":
             frames = np.concatenate([frames, frames[-2::-1]])
 
         self.dt = frames[:, 0]
         t = np.cumsum(self.dt)
-        #print("data time", t)
+        #print("pretrained time", t)
         self.t = np.concatenate([[0], t])[:-1]
         self.q = frames[:, 1:]
         self.qdot = np.diff(self.q, axis=0) / self.dt[:-1, None]

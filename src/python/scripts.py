@@ -62,6 +62,10 @@ def train(params,
 
     reward_params["motion_clips_file_path"] = motion_clip_file  # add new (key, value) pair to "reward_params", which stores the reward path.
 
+    if params['pretrained_file'] is not None:
+        pretrained_clip_file = params['pretrained_file']
+        pretrained_clip_file = os.path.join("data", "deepmimic", "pretrained", pretrained_clip_file)
+        reward_params["pretrained_clips_file_path"] = pretrained_clip_file
 
     # =============
     # weights and biases
