@@ -118,8 +118,8 @@ class VanillaEnv(PylocoEnv):
 
         # Inverse kinematics solution
         self.use_ik_solution = env_params["use_ik_solution"]
+        self.minimum_height = 0.01
         if self.use_ik_solution:
-            self.minimum_height = 0.01 
             self.q_last = None
             self.alpha = 0.3
 
@@ -176,7 +176,7 @@ class VanillaEnv(PylocoEnv):
 
         # run simulation
         action_applied = self.scale_action(action)
-        self._sim.step(action)
+        self._sim.step(action_applied)
         observation = self.get_obs()
 
         # update variables

@@ -14,11 +14,11 @@ from pylocogym.algorithms import CustomPPO, CustomActorCriticPolicy
 
 if __name__ == "__main__":
 
-    motion_clip_file = "humanoid3d_walk.txt"
-    config = "bob_env_walk_task.json"
+    motion_clip_file = "humanoid3d_jog.txt"
+    config = "bob_env_jog.json"
     log_path = PYLOCO_LOG_PATH
     data_path = PYLOCO_DATA_PATH
-    model_file = "model_data/walk_task/model_34000000_steps.zip"
+    model_file = "model_data/jog2/model_24000000_steps.zip"
     venv_file = "model_data/walk_task/vecnormalize_34000000_steps.pkl"
 
     # config file

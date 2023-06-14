@@ -145,6 +145,13 @@ class TaskEnv(VanillaEnv):
         assert self.max_episode_steps > 0, "max_episode_steps should be positive"
 
         (q_reset, qdot_reset) = self.get_initial_state(self.initial_time)
+
+        if self.use_ik_solution:
+            end_effectors_raw = self._sim.get_fk_ee_pos(q_reset)
+            end_effectors_pos = np.array(
+                [end_effectors_raw[0], end_effectors_raw[2], end_effectors_raw[1], end_effectors_raw[3]])
+            (q_reset, _)  = self.get_ik_solutions(q_reset, end_effectors_pos)
+            
         self._sim.reset(q_reset, qdot_reset, self.initial_time / self.clips_play_speed)  # q, qdot include root's state(pos,ori,vel,angular vel)
         # self._sim.reset()
 
@@ -198,10 +205,14 @@ class TaskEnv(VanillaEnv):
         end_effectors_pos = np.array(
             [end_effectors_raw[0], end_effectors_raw[2], end_effectors_raw[1], end_effectors_raw[3]]
         )
-        for each_pos in end_effectors_pos:
-            if each_pos[1] < self.minimum_height:
-                each_pos[1] = self.minimum_height
-        # sample_retarget.q = q_desired
+
+        if self.use_ik_solution: # fix the problematic ee_pos and joints' values
+            (sample_retarget.q, end_effectors_pos)  = self.get_ik_solutions(sample_retarget.q, end_effectors_pos)
+        
+        else: # simply just fix the problematic ee_pos, not changed the joints' values
+            for each_pos in end_effectors_pos:
+                if each_pos[1] < self.minimum_height:
+                    each_pos[1] = self.minimum_height
 
         # compute reward
         reward, reward_info, err_info = self.reward_utils.compute_reward(
