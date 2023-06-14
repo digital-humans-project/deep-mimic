@@ -4,25 +4,18 @@ Computing reward for Vanilla setup, constant target speed, gaussian kernels
 import numpy as np
 from pylocogym.envs.rewards.utils.utils import *
 from scipy.spatial.transform import Rotation
+from .humanoid_reward import Reward
 
-
-class Reward:
+class TaskReward(Reward):
     def __init__(self, 
                  cnt_timestep,
                  num_joints, 
                  mimic_joints_index, 
-                 reward_params):
-        """
-        :variable dt: control time step size
-        :variable num_joints: number of joints
-        :variable params: reward params read from the config file
-        """
-        self.dt = cnt_timestep
-        self.num_joints = num_joints
-        self.params = reward_params
-        self.mimic_joints_index = mimic_joints_index
+                 reward_params,
+                 add_task_obs):
+        super().__init__(cnt_timestep, num_joints, mimic_joints_index, reward_params)
+        self.add_task_obs = add_task_obs
 
-        
 
     def compute_reward(self, 
                        observation_raw, 
@@ -39,22 +32,13 @@ class Reward:
         
         :return: total reward, reward information (different terms can be passed here to be plotted in the graphs)
         """
-
-        # test_data = {'observation_raw': observation_raw, 'dt': dt, 'num_joints': num_joints, 'params': params,
-        #              'feet_status': feet_status, 'all_torques': all_torques, 'action_buffer': action_buffer,
-        #              'is_obs_fullstate': is_obs_fullstate, 'joint_angles_default': joint_angles_default,
-        #              'nominal_base_height': nominal_base_height}
         
         num_joints = self.num_joints
         dt = self.dt
         params = self.params
 
         observation = ObservationData(observation_raw, num_joints, is_obs_fullstate)
-
-        # action_dot, action_ddot = calc_derivatives(action_buffer, dt, num_joints)
-
         
-
         # =======================
         # OURS MODEL coordinate   : Z FORWARD, X LEFT, Y UP
         # =======================
@@ -65,41 +49,30 @@ class Reward:
         diff = np.linalg.norm(desired_base_pos_xz - now_base_xz)
         sigma_com = params.get("sigma_com", 0)
         weight_com = params.get("weight_com", 0)
-        com_reward = weight_com * np.exp(-diff**2/(2.0*sigma_com**2))
-        com_err = diff
+        com_reward = weight_com * np.exp(-diff**2/(2.0*sigma_com**2)) # Inspired from assignment 2 equivalent reward.
+        com_err = diff # Error which will be logged.
 
         # Root height reward
         height = observation.y
         desired_height = sample_retarget.q_fields.root_pos[1]
-        diff_squere = (height - desired_height)**2
+        diff_square = (height - desired_height)**2
         sigma_height = params.get("sigma_height", 0)
         weight_height = params.get("weight_height", 0)
-        height_reward = weight_height * np.exp(-diff_squere/(2.0*sigma_height**2))
-        height_err = height - desired_height
+        height_reward = weight_height * np.exp(-diff_square/(2.0*sigma_height**2)) # Inspired from assignment 2 equivalent reward.
+        height_err = height - desired_height # Error which will be logged.
 
         # Root orientation reward
         R = Rotation.from_euler('YXZ',sample_retarget.q_fields.root_rot)
         desired_ori = R.as_quat()
-        diff_squere = np.sum((observation.ori_q - desired_ori)**2)
+        diff_square = np.sum((observation.ori_q - desired_ori)**2)
         weight_root_ori = params.get("weight_root_ori", 0)
         sigma_root_ori = params.get("sigma_root_ori", 0)
-        root_ori_reward = weight_root_ori * np.exp(-diff_squere/(sigma_root_ori**2))
-        root_ori_err = diff_squere
+        root_ori_reward = weight_root_ori * np.exp(-diff_square/(sigma_root_ori**2))
+        root_ori_err = diff_square
 
         N = num_joints
         N_mimic = len(self.mimic_joints_index)
         # set_other = set(range(N)) - self.mimic_joints_index # joints that have no corresponding in motion clips
-
-        # Unused joints smoothness reward
-        # rest_joints_dot = action_dot[list(set_other)]
-        # weight_smoothness1 = params.get("weight_smoothness1", 0)
-        # sigma_smoothness1 = params.get("sigma_smoothness1", 0)
-        # smoothness1_reward = weight_smoothness1 * np.exp(-np.sum(rest_joints_dot**2)/(2.0*(N-N_mimic)*sigma_smoothness1**2))
-
-        # rest_joints_ddot = action_ddot[list(set_other)]
-        # weight_smoothness2 = params.get("weight_smoothness2", 0)
-        # sigma_smoothness2 = params.get("sigma_smoothness2", 0)    
-        # smoothness2_reward = weight_smoothness2 * np.exp(-np.sum(rest_joints_ddot**2)/(2.0*(N-N_mimic)*sigma_smoothness2**2))
 
 
         motion_joints = sample_retarget.q_fields.joints
@@ -113,13 +86,6 @@ class Reward:
         joints_reward = weight_joints * np.exp(-diff/(2.0*N_mimic*sigma_joints**2))
         joints_err = diff
 
-        # Leg reawrd (waiting for the end effector reward to take the place of it)
-        # leg_joints_angles = observation.joint_angles[[1,4,7,10,13,16,2,5,8,11,14,17]]
-        # desired_leg_angles = motion_joints[[1,4,7,10,13,16,2,5,8,11,14,17]]
-        # diff = leg_joints_angles - desired_leg_angles
-        # weight_legs = params.get("weight_legs", 0)
-        # sigma_legs = params.get("sigma_legs", 0)
-        # leg_reward = weight_legs * np.exp(-np.sum(np.square(diff))/(2.0*12*sigma_legs**2))
 
         # End effector reward
         diff_lf = end_effectors_pos[0] - observation.lf
@@ -143,6 +109,23 @@ class Reward:
         joints_vel_reward = weight_joints_vel * np.exp(-diff/(2.0*N_mimic*sigma_joints_vel**2))
         joints_vel_err = diff
 
+        # Task (follow specific direction) reward
+        desired_heading_vector = observation.observation[-3:-1]
+        now_heading_vector = observation.vel[[0,2]]
+        
+        # "diff" tracks the similarity of the direction the agent is heading towards in the current observation, "now_heading_vector",
+        # and the desired direction, "desired_heading_vector".
+        # Remember: # Math: \text{cosine similarity}(\vec{a}, \vec{b}) := \frac{\vec{a} \cdot \vec{b}}{ \| \vec{a} \| \| \vec{b} \|}
+        # NOTE: 1) If the directions are known to be unit vectors (i.e. norm = 1), then there is no need to call "np.linalg.norm"
+        # This can be computationally less expensive, because computing square roots (definition of a norm) requires an iterative root-problem solver.
+        # 2) The vector "desired_heading_vector" is a unit vector by definition.
+        diff = np.dot(now_heading_vector, desired_heading_vector)/np.linalg.norm(now_heading_vector)
+        weight_task = params.get("weight_task", 0)
+        sigma_task = params.get("sigma_task", 0)
+        task_reward = weight_task * np.exp(-(diff-1)**2/(2.0*sigma_task**2))
+        task_err = diff
+
+
         # =============
         # sum up rewards
         # =============
@@ -155,7 +138,8 @@ class Reward:
                 + root_ori_reward   \
                 + joints_reward     \
                 + joints_vel_reward \
-                + end_effectors_reward
+                + end_effectors_reward \
+                + task_reward
 
         info = {
             "com_reward": com_reward,
@@ -172,7 +156,9 @@ class Reward:
 
             # "leg_reward": leg_reward,
 
-            "end_effectors_reward": end_effectors_reward
+            "end_effectors_reward": end_effectors_reward,
+
+            "task_reward": task_err
         }
 
         err = {
@@ -181,12 +167,8 @@ class Reward:
             "root_ori_err": root_ori_err,
             "joints_err": joints_err,
             "end_effectors_err": end_effectors_err,
-            "joints_vel_err": joints_vel_err
+            "joints_vel_err": joints_vel_err,
+            "task_err": task_err
         }
 
         return reward, info, err
-
-
-    def punishment(self, current_step, max_episode_steps):  # punishment for early termination
-        penalty = self.params['weight_early_penalty'] * (max_episode_steps - current_step)
-        return penalty

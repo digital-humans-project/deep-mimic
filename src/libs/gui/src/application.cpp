@@ -331,11 +331,11 @@ void Application::draw() {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    drawFPS();
-    drawConsole();
-    drawImGui();
-    if (showPlots)
-        drawImPlot();
+    // drawFPS();
+    // drawConsole();
+    // drawImGui();
+    // if (showPlots)
+    //     drawImPlot();
 
     ImGui::EndFrame();
     ImGui::Render();

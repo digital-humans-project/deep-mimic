@@ -89,6 +89,7 @@ class DeepMimicMotionBobAdapter(DeepMimicMotion):
 
     def rescale_action(self, action):
         bound_action = np.minimum(np.maximum(action, self.joint_angle_limit_low), self.joint_angle_limit_high)
+        #? Konstantinos: Why not use the command: `bound_action = np.clip(action, self.joint_angle_limit_low, self.[...]_high)`?
         scaled_action = (bound_action - self.joint_angle_default) / self.joint_scale_factors
         return scaled_action
 
@@ -161,6 +162,7 @@ class DeepMimicMotionBobAdapter(DeepMimicMotion):
             joints = self.rescale_action(joints)
         else:
             joints = np.minimum(np.maximum(joints, self.joint_angle_limit_low), self.joint_angle_limit_high)
+            #? Again, why not use the `np.clip` function, instead of min(max())?
 
         return joints
 

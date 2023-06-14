@@ -29,11 +29,13 @@ class RecordEvalCallback(EvalCallback):
         self.name_prefix = name_prefix
 
         super().__init__(eval_env, eval_freq=eval_freq, deterministic=deterministic, render=render)
+        eval_env.reset()
+
 
     def _on_step(self) -> bool:
         continue_training = True
 
-        if self.n_calls == 1 or (self.eval_freq > 0 and self.n_calls % self.eval_freq == 0):
+        if  (self.eval_freq > 0 and self.n_calls % self.eval_freq == 0):
             # Sync training and eval env if there is VecNormalize
             # if self.model.get_vec_normalize_env() is not None:
             #     try:

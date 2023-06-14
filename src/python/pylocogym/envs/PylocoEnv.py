@@ -14,7 +14,7 @@ sys.modules["module.name"] = pyloco
 spec.loader.exec_module(pyloco)
 
 # default window size
-DEFAULT_SIZE = 480
+DEFAULT_SIZE = 640, 480
 
 
 class PylocoEnv(gym.Env):
@@ -28,6 +28,7 @@ class PylocoEnv(gym.Env):
         self._sim.motor_kd = env_params['motors_kd']
         self._sim.motor_max_torque = env_params['max_torque']
         self.max_episode_steps = max_episode_steps
+        self._render_size = env_params.get('render_size', DEFAULT_SIZE)
 
         # important note
         # metadata is required for video recording (used by video recoder wrapper)
@@ -208,7 +209,7 @@ class PylocoEnv(gym.Env):
 
         return terminated, truncated, term_info
 
-    def render(self, mode="human", width=DEFAULT_SIZE, height=DEFAULT_SIZE):
+    def render(self, mode="human"):
         if mode == "human":
             if self._viewer is None:
                 # create full-screen viewer
@@ -220,7 +221,7 @@ class PylocoEnv(gym.Env):
         elif mode == "rgb_array":
             if self._viewer is None:
                 # create viewer with width and height
-                self._viewer = pyloco.Viewer(self._sim, width, height)
+                self._viewer = pyloco.Viewer(self._sim, *self._render_size)
 
             # hide plot for rgb_array
             self._viewer.show_plots = False
@@ -308,7 +309,10 @@ class PylocoEnv(gym.Env):
         res = self.lerp.eval(now_t)
         assert res is not None
         sample, kf = res
+        # Retargeting is done from deep mimic humanoid model to Bob (i.e. DeepMimic -> Bob)
         sample_retarget = self.adapter.adapt(sample, kf)  # type: ignore # data after retargeting
+        #? Konstantinos question: It seems weird to me to call "self.adapter" inside "PylocoEnv",
+        #? when I only see this defined inside the subclass "VanillaEnv".
         
         q_reset = sample_retarget.q
         qdot_reset = sample_retarget.qdot
