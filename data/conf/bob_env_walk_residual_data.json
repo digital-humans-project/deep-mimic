@@ -1,5 +1,5 @@
 {
-  "env_id": "ResidualEnv-v0",
+  "env_id": "ResidualEnv-v1",
   "motion_file": "humanoid3d_walk.txt",
   "pretrained_file": "walk_pretrained.txt",
   "train_hyp_params": {

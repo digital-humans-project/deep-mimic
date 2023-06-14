@@ -33,7 +33,7 @@ from pylocogym.data.loop_dataset import LoopKeyframeMotionDataset
 from pylocogym.envs.rewards.bob.humanoid_reward import Reward
 
 
-class ResidualEnv(PylocoEnv):
+class ResidualEnv_v1(PylocoEnv):
     def __init__(self, max_episode_steps, env_params, reward_params, enable_rand_init=True):
         sim_dt = 1.0 / env_params["simulation_rate"]
         con_dt = 1.0 / env_params["control_rate"]
