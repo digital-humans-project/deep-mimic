@@ -44,6 +44,7 @@ def train(params,
 
     steps = hyp_params['time_steps']
     motion_clip_file = params['motion_file']
+    
     dir_name = "{id}-{clips}-{steps:.1f}M-residual".format(id=params['env_id'], clips=motion_clip_file, steps=float(steps / 1e6))
     save_path = manage_save_path(log_path, dir_name)
     
@@ -57,6 +58,10 @@ def train(params,
 
     reward_params["motion_clips_file_path"] = motion_clip_file  # add reward path to reward params
 
+    if params['pretrained_file'] is not None:
+        pretrained_clip_file = params['pretrained_file']
+        pretrained_clip_file = os.path.join("data", "deepmimic", "pretrained", pretrained_clip_file)
+        reward_params["pretrained_clips_file_path"] = pretrained_clip_file
 
     # =============
     # weights and biases
