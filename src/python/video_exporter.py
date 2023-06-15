@@ -11,6 +11,8 @@ from pylocogym.envs.video_recoder import VecVideoRecorder
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import DummyVecEnv
+from stable_baselines3.common.vec_env import VecNormalize
+from pylocogym.algorithms import CustomPPO
 
 logging.basicConfig(level=logging.INFO)
 if __name__ == "__main__":
@@ -27,6 +29,7 @@ if __name__ == "__main__":
     hyp_params = params["train_hyp_params"]
     env_params = params['environment_params']
     reward_params = params['reward_params']
+    venv_file = "model_data/walk_task/vecnormalize_34000000_steps.pkl"
 
     max_episode_steps = hyp_params.get("max_episode_steps", 5000)
     seed = hyp_params.get("seed", 313)
@@ -46,12 +49,15 @@ if __name__ == "__main__":
         env_kwargs=env_kwargs,
         vec_env_cls=DummyVecEnv,
     )
+    if hyp_params.get("normalize_observation") or hyp_params.get("normalize_reward"):
+        eval_env = VecNormalize.load(venv_file,eval_env)
     eval_env = VecVideoRecorder(
         eval_env,
         topk=export_params["topk"],
     )
+    
 
-    model = PPO.load(model_file, eval_env)
+    model = CustomPPO.load(model_file, eval_env)
 
     obs = eval_env.reset()
     for ep in tqdm(range(export_params["max_steps"])):
