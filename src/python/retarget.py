@@ -85,7 +85,7 @@ def play_motion(params, motion_clips_path=None, urdf_path = None):
     if urdf_path is not None:
         env_params["urdf_path"] = urdf_path
 
-    if 'pretrained_file' in params.keys():
+    if "pretrained_file" in params.keys():
         pretrained_clip_file = params['pretrained_file']
         pretrained_clip_file = os.path.join("data", "deepmimic", "pretrained", pretrained_clip_file)
         reward_params["pretrained_clips_file_path"] = pretrained_clip_file
