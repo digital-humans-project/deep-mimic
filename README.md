@@ -29,7 +29,7 @@ motion_clip_file = "humanoid3d_walk.txt"
 config = "bob_env_walk.json"
 ```
 
-## Train the network(in Euler)
+## Train the network (on Euler)
 
 ### Compile on server
 - Build `pyloco.so` (python wrapper of pyloco C++ libraries)
@@ -136,6 +136,3 @@ python src/python/main_visualizer.py
 |  rAnkle_2       | 17     | right ankle_z         | prime      |
 |  ***none***     | --     | right ankle_y         | prime      |
 |  rToeJoint      | 22     | right toe(none)       | additional  |
-
-
-## Data loader
