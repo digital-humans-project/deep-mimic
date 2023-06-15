@@ -1,71 +1,35 @@
-# Naive version for training in euler
+# Deep Mimic with Pyloco Environment
 
-noted: an ugly code version, just for testing avaibility of whole thing
+This repository contains a fork of Pyloco's implementation of the humanoid model used in DeepMimic, and our implementation of the RL pipeline to mimic motion from a reference motion clip on the humanoid model. Related paper links: https://xxxxxxxx
 
-------------------------------------------------
+## Install
 
+Install PyTorch using conda or pip.
 
-## STEP 1: Decided which motions clip to learn
+```bash
+conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia
+```
 
-- go finds `src/python/main.py` line 49:
+Then install the package.
+
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt 
+```
+
+## Play the motion clips
+
+```bash
+cd deep-mimic
+python src/python/main_retarget.py
+```
+To choose the specific motion you want to play, need to change the clip file inside `src/python/main.py`, for example:
 ```sh 
 motion_clip_file = "humanoid3d_walk.txt"
-```
-- change the clip file to whatever you want
-
-------------------------------------------------
-
-## STEP 2: Reward function part
-
-- in `src/python/pylocogym/envs/rewards/bob/humanoid_reward.py`:
-
-```python
-def compute_reward():
-    inplements 6 reward terms
-
-    ## Those for robot's root
-    1. root_height reward, (make the root y pos mimic data desired height)
-    2. forward_vel_reward (compared for each time_steps, the difference between the root x&z position and that from our model)
-    3. root_ori_reward (make the root ori mimic data desired ori)
-    
-
-    ## Those for robot's joints
-    4. smoothness reward (make the useless joints move smoothly)
-    5. joint_reward (mimic the motion clips)
-    6. joint_vel_reward (mimic the motion clips)
-    7. end_effector_reward (mimic the motion clips)
+config = "bob_env_walk.json"
 ```
 
-- noted: these designs are merely naive versions, only for the walking task,
-feel free to modify them to proper way
-
-------------------------------------------------
-
-## STEP 3: Reward function parameters
-- go finds `data/conf/bob_env.json`:
-- can change weight and sigma, also the network structure
-
-------------------------------------------------
-## STEP 4: Slow Down the motion clips (optional)
-- in `data/conf/bob_env.json` line 30:
-```python
- "clips_play_speed": 0.5,
-```
-- this parameter is for slowing down the motion clips 0.5 time
-- the reason to do that is the motion clips of walking are too short, only 1.1 seconds. if you want to keep the original motion clips, just set `clips_play_speed` = 1
-
-------------------------------------------------
-
-## STEP 4: Run training in euler
-- almost the same procedure as in assignment 2
-
-```sh 
-$ conda activate pylocoEnv  
-$ cd deep-mimic (clone the repo)
-$ git checkout naive_train
-$ pip install -r requirements.txt 
-$ wandb login
-```
+## Train the network(in Euler)
 
 ### Compile on server
 - Build `pyloco.so` (python wrapper of pyloco C++ libraries)
@@ -82,7 +46,7 @@ $ wandb login
   $ cd ..
   ```
 
-  ### Run jobs on server
+### Run jobs on server
  
 - Run
   ```sh
@@ -90,5 +54,88 @@ $ wandb login
   $ env2lmod
   $ module load gcc/8.2.0 python/3.9.9 cmake/3.25.0 freeglut/3.0.0 libxrandr/1.5.0  libxinerama/1.1.3 libxi/1.7.6  libxcursor/1.1.14 mesa/17.2.3 eth_proxy  
   # Submit job
-  $ sbatch ./jobs/deep_mimic
+  $ sbatch ./jobs/deep_mimic_walk.sh
   ```
+### Change config
+
+- config in `data/conf/bob_env_walk.json`
+```json
+"env_id": "PylocoVanilla-v0", // can choose from {"PylocoVanillaTask-v0","ResidualEnv-v0","ResidualEnv-v1","PylocoMultiClip-v0"}, determine the method to use
+"motion_file": "humanoid3d_walk.txt", // Determine motion clips to mimic
+"train_hyp_params": {...}, 
+"environment_params":{...},
+"reward_params":{...},
+"model_params": {...},
+```
+
+## Test the network
+```bash
+cd deep-mimic
+python src/python/main_test_model.py
+```
+To choose the pre-trained model file, need to change it inside `src/python/main_test_model.py`, for example:
+```sh 
+model_file = "model_data/walk/model_34000000_steps.zip"
+```
+
+
+## Visulaizer for retarget 
+
+```bash
+cd deep-mimic
+python src/python/main_visualizer.py
+```
+
+### Joint coordinate retarget table
+
+|  joint in bob   | index in action | joint in motions clip | relationship |
+|  :----:         | :----: | :----:                | :----:|
+|  lowerback_x    | 0      | chest_x               | prime |
+|  lowerback_y    | 3      | chest_y               | prime |
+|  lowerback_z    | 6      | chest_z               | prime |
+|  upperback_x    | 9      | chest_x               | subordinate |
+|  upperback_y    | 12     | chest_y               | subordinate |
+|  upperback_z    | 15     | chest_z               | subordinate |
+|  lowerneck_x    | 18     | neck_x                | prime |
+|  lowerneck_y    | 23     | neck_y                | prime |
+|  lowerneck_z    | 26     | neck_z                | prime |
+|  upperneck_x    | 29     | neck_z                | subordinate |
+|  upperneck_y    | 32     | neck_y                | subordinate |
+|  upperneck_z    | 35     | neck_z                | subordinate |
+|  lScapula_y     | 19     | left shoulder_y       | subordinate |
+|  lScapula_z     | 24     | left shoulder_z       | subordinate |
+|  lShoulder_1    | 27     | left shoulder_x       | prime      |
+|  lShoulder_2    | 30     | left shoulder_z       | prime      |
+|lShoulder_torsion| 33     | left shoulder_y       | prime      |
+|lElbow_flexion_extension|36|left elbow            | prime      |
+|  lElbow_torsion | 38     | left elbow(none)      | additional  |
+|  lWrist_x       | 40     | left wrist(none)      | additional  |
+|  lWrist_z       | 42     | left wrist(none)      | additional  |
+|  rScapula_y     | 20     | right shoulder_y      | subordinate |
+|  rScapula_z     | 25     | right shoulder_z      | subordinate |
+|  rShoulder_1    | 28     | right shoulder_x      | prime      |
+|  rShoulder_2    | 31     | right shoulder_z      | prime      |
+|rShoulder_torsion| 34     | right shoulder_y      | prime      |
+|rElbow_flexion_extension|37|right elbow           | prime      |
+|  rElbow_torsion | 39     | right elbow(none)     | additional  |
+|  rWrist_x       | 41     | right wrist(none)     | additional  |
+|  rWrist_z       | 43     | right wrist(none)     | additional  |
+|  lHip_1         | 1      | left hip_x            | prime      |
+|  lHip_2         | 4      | left hip_z            | prime      |
+|  lHip_torsion   | 7      | left hip_y            | prime      |
+|  lKnee          | 10     | left knee             | prime      |
+|  lAnkle_1       | 13     | left ankle_x          | prime      |
+|  lAnkle_2       | 16     | left ankle_z          | prime      |
+|  ***none***     | --     | left ankle_y          | prime      |
+|  lToeJoint      | 21     | left toe(none)        | additional  |
+|  rHip_1         | 2      | right hip_x           | prime      |
+|  rHip_2         | 5      | right hip_z           | prime      |
+|  rHip_torsion   | 8      | right hip_y           | prime      |
+|  rKnee          | 11     | right knee            | prime      |
+|  rAnkle_1       | 14     | right ankle_x         | prime      |
+|  rAnkle_2       | 17     | right ankle_z         | prime      |
+|  ***none***     | --     | right ankle_y         | prime      |
+|  rToeJoint      | 22     | right toe(none)       | additional  |
+
+
+## Data loader
